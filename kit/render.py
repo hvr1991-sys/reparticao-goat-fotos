@@ -338,9 +338,9 @@ def conferir(spec):
             erros.append("subtítulo/apoio passa de 70 caracteres (tem que caber em 1 linha)")
         if len(str(spec.get("sobretitulo", ""))) > 30:
             erros.append("sobretítulo longo demais (máx. 30)")
-        tem_jogo = bool(spec.get("jogo")) or bool(spec.get("confronto"))
-        if not tem_jogo:
-            erros.append('faltou a linha do jogo no rodapé (campo "jogo": campeonato, confronto, data, hora)')
+        j = spec.get("jogo") or {}
+        if j and not (j.get("confronto") and (j.get("data") or j.get("hora"))):
+            erros.append('linha do jogo incompleta: precisa de confronto e dia/hora')
     if tipo == "agenda":
         for j in spec.get("jogos") or []:
             programa = " X " not in str(j.get("confronto", "")).upper()
