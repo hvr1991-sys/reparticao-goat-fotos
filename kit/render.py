@@ -134,9 +134,10 @@ def agenda(spec):
     # informações da transmissão 50% maiores (pedido do Gestor); com muitos jogos, tudo encolhe junto para caber
     top_area, bottom_area = 320, H - 180  # entre a data e o logo
     gap = 20
-    k = min(1.0, ((bottom_area - top_area) - (n - 1) * gap) / (n * 166)) if n else 1.0
-    card_h = int(166 * k)
-    f_hora, f_rot, f_tit = int(69 * k), int(28 * k), int(48 * k)
+    k = min(1.0, ((bottom_area - top_area) - (n - 1) * gap) / (n * 186)) if n else 1.0
+    card_h = int(186 * k)
+    # horário no tamanho de sempre; rótulo e confronto maiores, com espaço para a foto à direita
+    f_hora, f_rot, f_tit = int(46 * max(k, .8)), int(28 * k), int(48 * k)
     total = n * card_h + (n - 1) * gap
     y0 = top_area + max(0, ((bottom_area - top_area) - total) // 2)
     cards = []
@@ -145,20 +146,28 @@ def agenda(spec):
         foto = j.get("foto")
         foto_html = ""
         if foto:
-            foto_html = (f'<div style="position:absolute;right:0;top:0;bottom:0;width:38%;overflow:hidden;border-radius:0 18px 18px 0">'
+            foto_html = (f'<div style="position:absolute;right:0;top:0;bottom:0;width:44%;overflow:hidden;border-radius:0 18px 18px 0">'
                          f'<img src="{editorial(foto)}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{esc(j.get("foco","70% 25%"))}">'
                          f'<div style="position:absolute;inset:0;background:linear-gradient(90deg,{SURF2} 0%,rgba(20,20,22,.85) 18%,rgba(20,20,22,.35) 55%,rgba(20,20,22,0) 85%)"></div></div>')
-        titulo = confronto(j["confronto"]) if " X " in str(j.get("confronto", "")).upper() else esc(str(j.get("confronto", "")).upper())
+        conf = str(j.get("confronto", "")).upper()
+        estilo = f"font:700 {f_tit}px/1.04 'GOAT Sans';color:{WHITE};text-transform:uppercase;white-space:nowrap;overflow:hidden"
+        if foto and " X " in conf:
+            # com foto: um time por linha ("TIME A X" / "TIME B"), sem cortar nem reticências
+            a_, b_ = conf.split(" X ", 1)
+            tit_html = (f'<div style="{estilo}">{esc(a_)} <span style="color:{Y}">X</span></div>'
+                        f'<div style="{estilo}">{esc(b_)}</div>')
+        else:
+            tit_html = f'<div style="{estilo}">{confronto(conf) if " X " in conf else esc(conf)}</div>'
         cards.append(f"""
 <div style="position:absolute;left:{(W-960)//2}px;top:{y}px;width:960px;height:{card_h}px;border-radius:18px;overflow:hidden;
  background:linear-gradient(180deg,{SURF2},{SURF1});box-shadow:inset 0 0 0 1px rgba(245,245,242,.06)">
  <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:{Y}"></div>
  {foto_html}
- <div style="position:absolute;left:30px;top:0;bottom:0;width:{int(205*k)}px;display:flex;align-items:center;font:700 {f_hora}px/1 'GOAT Sans';color:{WHITE};text-transform:uppercase;white-space:nowrap">{esc(j["horario"]).upper()}</div>
- <div style="position:absolute;left:{int(30+215*k)}px;top:{int(28*k)}px;bottom:{int(28*k)}px;width:1px;background:rgba(245,245,242,.22)"></div>
- <div style="position:absolute;left:{int(30+215*k)+24}px;right:{'36%' if foto else '30px'};top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:{int(12*k)}px">
+ <div style="position:absolute;left:30px;top:0;bottom:0;width:{int(150*k)}px;display:flex;align-items:center;font:700 {f_hora}px/1 'GOAT Sans';color:{WHITE};text-transform:uppercase;white-space:nowrap">{esc(j["horario"]).upper()}</div>
+ <div style="position:absolute;left:{int(30+160*k)}px;top:{int(28*k)}px;bottom:{int(28*k)}px;width:1px;background:rgba(245,245,242,.22)"></div>
+ <div style="position:absolute;left:{int(30+160*k)+24}px;right:{'40%' if foto else '30px'};top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:{int(6*k)}px">
   <div style="font:600 {f_rot}px/1.05 'GOAT Sans';letter-spacing:.04em;color:{Y};text-transform:uppercase;white-space:nowrap;overflow:hidden">{esc(j["rotulo"])}</div>
-  <div style="font:700 {f_tit}px/1.05 'GOAT Sans';color:{WHITE};text-transform:uppercase;white-space:nowrap;overflow:hidden">{titulo}</div>
+  {tit_html}
  </div>
 </div>""")
     body = f"""{bg}{ilustrativo(spec)}
