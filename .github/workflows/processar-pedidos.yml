@@ -41,7 +41,8 @@ jobs:
           python-version: "3.12"
       - name: Instalar
         if: steps.fila.outputs.n != '0'
-        run: pip install pillow==11.1.0 numpy playwright==1.49.1 && python -m playwright install --with-deps chromium
+        # o runner já tem o Google Chrome; o kit e o robô usam ele (sem baixar outro navegador)
+        run: pip install pillow==11.1.0 numpy playwright==1.49.1
       - name: Processar
         if: steps.fila.outputs.n != '0'
         run: python tools/processar.py /tmp/jobs.json

@@ -69,7 +69,8 @@ def via_navegador(url):
     from playwright.sync_api import sync_playwright
     if _browser is None:
         pw = sync_playwright().start()
-        _browser = pw.chromium.launch(args=["--no-sandbox"])
+        exe = "/usr/bin/google-chrome" if Path("/usr/bin/google-chrome").exists() else None
+        _browser = pw.chromium.launch(executable_path=exe, args=["--no-sandbox"]) if exe else pw.chromium.launch(args=["--no-sandbox"])
     ctx = _browser.new_context(user_agent=UA, locale="pt-BR", viewport={"width": 1366, "height": 900})
     try:
         page = ctx.new_page()
