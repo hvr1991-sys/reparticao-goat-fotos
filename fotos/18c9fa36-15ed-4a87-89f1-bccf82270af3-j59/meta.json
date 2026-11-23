@@ -1,0 +1,26 @@
+{
+  "id": "18c9fa36-15ed-4a87-89f1-bccf82270af3-j59",
+  "fotos": [
+    {
+      "ok": false,
+      "pagina": "https://rbleipzig.com/de/match-news/spielbericht-liveticker-rb-leipzig-union-berlin-2026-11-21",
+      "erro": "cannot identify image file <_io.BytesIO object at 0x7c0a680227f0>"
+    },
+    {
+      "ok": false,
+      "pagina": "https://rbleipzig.com/en/news/review-union-berlin-vs-rb-leipzig-bundesliga-22-november-2026",
+      "erro": "cannot identify image file <_io.BytesIO object at 0x7c0a67477bf0>"
+    },
+    {
+      "ok": true,
+      "arquivo": "3.jpg",
+      "largura": 1200,
+      "altura": 630,
+      "url_imagem": "https://www.fc-union-berlin.de/og/8bba3d71-e006-410f-9ad3-e0fee3187abc?ts=1795278654&s=HVFiteG7kPBmhIFhKT_-Hd",
+      "pagina": "https://www.fc-union-berlin.de/en/news/union-loses-15-to-leipzig-XMba5s",
+      "credito": "1. FC Union Berlin",
+      "rotulo": "Union x Leipzig Union",
+      "baixa_resolucao": false
+    }
+  ]
+}

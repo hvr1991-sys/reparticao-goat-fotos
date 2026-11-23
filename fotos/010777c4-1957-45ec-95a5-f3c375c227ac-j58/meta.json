@@ -1,0 +1,27 @@
+{
+  "id": "010777c4-1957-45ec-95a5-f3c375c227ac-j58",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/gmmhgqyvtytst7eljhh1",
+      "pagina": "https://www.spl.com.sa/en/news/al-hazem-look-to-rsl-veterans-to-fire-their-top-flight-targets",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Hazem veteranos",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/pwgswybjv3brvl04kjwt",
+      "pagina": "https://www.spl.com.sa/en/videos/youtube/season-opener-win-al-hazem-edge-abha-powered-by-toyota",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Hazem x Abha",
+      "baixa_resolucao": false
+    }
+  ]
+}

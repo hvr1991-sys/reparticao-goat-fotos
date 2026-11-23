@@ -1,0 +1,43 @@
+{
+  "id": "ae52d691-ec6e-4ad6-acde-61d3e13e94ba-j57",
+  "fotos": [
+    {
+      "ok": false,
+      "pagina": "https://www.vilanovafc.com.br/noticias/499-vila-volta-a-vencer-na-serie-b-em-classico-no-oba",
+      "erro": "robô simples: HTTP Error 403: Forbidden · navegador: página sem imagem principal (título: Um momento…)"
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/qwhttzneaakxmxoitas5",
+      "pagina": "https://www.spl.com.sa/en/news/1078199/fight-on-all-fronts-rodgers-prepping-al-qadsiah-for-major-season",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Qadsiah",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "3.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/didrlljdlbvaydvi6clw",
+      "pagina": "https://www.spl.com.sa/en/news/last-gasp-kante-rescues-al-ittihad-during-frantic-finish-in-al-qadsiah-title-showdown",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Ittihad",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "4.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_q-good/prd/assets/site%20image/Slide_16_9_-_1_clou9h.jpg",
+      "pagina": "https://www.spl.com.sa/en/news/826049/quinones-brace-sees-title-challengers-al-qadsiah-overcome-al-ittihad",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Qadsiah 2",
+      "baixa_resolucao": false
+    }
+  ]
+}
