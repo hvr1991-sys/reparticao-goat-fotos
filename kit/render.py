@@ -256,7 +256,7 @@ def _post(spec, meio=""):
     size = spec.get("tamanho_titulo", 122)
     titulo = f'<div class="fit" style="font:700 {size}px/.95 \'GOAT Sans\';text-transform:uppercase">{_titulo_duas_cores(spec["titulo"])}</div>'
     apoio = f'<div style="font:500 36px/1.2 \'GOAT Sans\';color:rgba(245,245,242,.9);margin-top:20px;max-width:900px">{spec_apoio(spec)}</div>' if spec.get("apoio") else ""
-    jogo = f'<div style="margin-top:44px;padding-top:30px;border-top:2px solid rgba(255,211,24,.55)">{_linha_jogo(j)}</div>' if j else ""
+    jogo = f'<div style="margin-top:22px;padding-top:18px;border-top:2px solid rgba(255,211,24,.55)">{_linha_jogo(j)}</div>' if j else ""
     largura = "max-width:960px" if al == "center" else "width:900px"
     lado = {"center": "left:0;right:0;text-align:center", "left": "left:60px;text-align:left", "right": "right:60px;text-align:right"}[al]
     body = f"""{bg}{ilustrativo(spec)}
@@ -290,7 +290,7 @@ def chamada(spec):
 def estatisticas(spec):
     nums = "".join(f'<div style="flex:1;min-width:0;text-align:center"><div style="font:700 104px/.92 \'GOAT Sans\';color:{Y}">{esc(n["valor"])}</div>'
                    f'<div style="margin-top:12px;font:600 26px/1.1 \'GOAT Sans\';letter-spacing:.06em;text-transform:uppercase;color:rgba(245,245,242,.9)">{esc(n["rotulo"])}</div></div>' for n in spec["numeros"])
-    meio = f'<div style="display:flex;gap:28px;margin-top:40px;width:900px;max-width:100%">{nums}</div>'
+    meio = f'<div style="display:flex;gap:28px;margin-top:24px;width:900px;max-width:100%">{nums}</div>'
     s2 = dict(spec)
     s2.setdefault("tamanho_titulo", 96)
     return _post(s2, meio)
