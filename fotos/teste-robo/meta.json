@@ -1,0 +1,10 @@
+{
+  "id": "teste-robo",
+  "fotos": [
+    {
+      "ok": false,
+      "pagina": "https://fcbayern.com/en/news/2026/11/reaction-to-bayern-v-koeln",
+      "erro": "The read operation timed out"
+    }
+  ]
+}
