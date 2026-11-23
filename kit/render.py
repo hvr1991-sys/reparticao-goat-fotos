@@ -193,26 +193,67 @@ def jogo_unico(spec):
     return page(body)
 
 
+def _alinhamento(spec):
+    a = str(spec.get("alinhamento", "centro")).lower()
+    return {"esquerda": "left", "direita": "right"}.get(a, "center")
+
+
+def _degrade_lateral(al):
+    """Com título na lateral, um degradê lateral suave garante a leitura sem cobrir o rosto."""
+    if al == "left":
+        return '<div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.88) 0%,rgba(0,0,0,.62) 34%,rgba(0,0,0,0) 66%)"></div>'
+    if al == "right":
+        return '<div style="position:absolute;inset:0;background:linear-gradient(270deg,rgba(0,0,0,.88) 0%,rgba(0,0,0,.62) 34%,rgba(0,0,0,0) 66%)"></div>'
+    return ""
+
+
+def _rodape_jogo(spec):
+    """Informações do jogo SEMPRE no rodapé e com destaque: campeonato, confronto e dia/hora."""
+    j = spec.get("jogo")
+    if not j:
+        return ""
+    quando = " · ".join(x for x in [esc(str(j.get("data", "")).upper()), esc(str(j.get("hora", "")).upper())] if x)
+    return f"""
+<div style="position:absolute;left:0;right:0;bottom:0;height:330px;background:linear-gradient(to top,rgba(0,0,0,.96) 0%,rgba(0,0,0,.85) 55%,rgba(0,0,0,0) 100%)"></div>
+<div style="position:absolute;left:64px;right:64px;bottom:178px;text-align:center;font:600 26px/1 'GOAT Sans';letter-spacing:.1em;color:{Y};text-transform:uppercase;white-space:nowrap">{esc(j.get('campeonato',''))}</div>
+<div style="position:absolute;left:64px;right:64px;bottom:112px;text-align:center;font:700 56px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap">{confronto(j.get('confronto',''))}</div>
+<div style="position:absolute;left:64px;right:64px;bottom:62px;text-align:center;font:600 34px/1 'GOAT Sans';letter-spacing:.04em;white-space:nowrap"><span style="color:{Y}">{quando}</span></div>"""
+
+
+def _marca_canto(spec, al):
+    """Com rodapé de jogo, a marca sobe para o topo (lado oposto ao título quando lateral)."""
+    lado = "right:56px" if al == "left" else ("left:56px" if al == "right" else "left:0;right:0;display:flex;justify-content:center")
+    return f'<div style="position:absolute;top:56px;{lado}">{mark_tag(spec, 130)}</div>'
+
+
 def _titulo_duas_cores(linhas):
     # linhas: [{"texto":..., "amarelo":bool}]
-    return "".join(f'<div style="color:{Y if l.get("amarelo") else WHITE}">{esc(str(l["texto"]).upper())}</div>' for l in linhas)
+    if isinstance(linhas, str):
+        linhas = [{"texto": linhas}]
+    return "".join(f'<div style="color:{Y if l.get("amarelo") else WHITE};white-space:nowrap">{esc(str(l["texto"]).upper())}</div>' for l in linhas)
 
 
 def manchete(spec):
     foto = spec.get("foto")
+    al = _alinhamento(spec)
     if foto:
         bg = (f'<img src="{editorial(foto)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:{esc(spec.get("foco","50% 25%"))}">'
-              '<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.8) 30%,rgba(0,0,0,0) 62%)"></div>')
+              + ('<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.8) 30%,rgba(0,0,0,0) 62%)"></div>' if al == "center" else _degrade_lateral(al)))
     else:
         bg = '<div style="position:absolute;inset:0;background:#181818"></div>'
-    sobre = f'<div style="font:400 34px/1 \'GOAT Sans\';letter-spacing:.06em;color:rgba(255,255,255,.78);margin-bottom:22px;text-transform:uppercase">{esc(spec.get("sobretitulo",""))}</div>' if spec.get("sobretitulo") else ""
-    apoio = f'<div style="font:400 40px/1.15 \'GOAT Sans\';color:{WHITE};margin-top:26px">{spec_apoio(spec)}</div>' if spec.get("apoio") else ""
+    tem_jogo = bool(spec.get("jogo"))
+    sobre = f'<div style="font:500 30px/1 \'GOAT Sans\';letter-spacing:.06em;color:{Y};margin-bottom:18px;text-transform:uppercase">{esc(spec.get("sobretitulo",""))}</div>' if spec.get("sobretitulo") else ""
+    apoio = f'<div style="font:500 36px/1.18 \'GOAT Sans\';color:{WHITE};margin-top:22px">{spec_apoio(spec)}</div>' if spec.get("apoio") else ""
     size = spec.get("tamanho_titulo", 86)
+    pos = f"left:64px;right:64px;text-align:{al}" if al == "center" else (f"left:64px;width:62%;text-align:left" if al == "left" else f"right:64px;width:62%;text-align:right")
+    base = 380 if tem_jogo else (250 if foto else 420)
+    marca = _marca_canto(spec, al) if tem_jogo else f'<div style="position:absolute;bottom:72px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 150)}</div>'
     body = f"""{bg}{ilustrativo(spec)}
-<div style="position:absolute;left:64px;right:64px;bottom:{'250' if foto else '420'}px;text-align:center">
-{sobre}<div id="t" style="font:700 {size}px/.96 'GOAT Sans'">{_titulo_duas_cores(spec['titulo'])}</div>{apoio}</div>
-<div style="position:absolute;bottom:72px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 150)}</div>
-<script>const t=document.getElementById('t');let s={size};while(t.scrollWidth>t.clientWidth&&s>48){{s-=2;t.style.fontSize=s+'px';}}</script>"""
+<div style="position:absolute;{pos};bottom:{base}px">
+{sobre}<div id="t" style="font:700 {size}px/.98 'GOAT Sans'">{_titulo_duas_cores(spec['titulo'])}</div>{apoio}</div>
+{_rodape_jogo(spec)}
+{marca}
+<script>const t=document.getElementById('t');let s={size};while(t.scrollWidth>t.clientWidth&&s>44){{s-=2;t.style.fontSize=s+'px';}}</script>"""
     return page(body)
 
 
@@ -230,9 +271,9 @@ def chamada(spec):
 <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.88),rgba(0,0,0,0) 55%)"></div>
 {ilustrativo(spec)}
 <div style="position:absolute;top:64px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 150)}</div>
-<div style="position:absolute;left:64px;right:64px;top:430px;text-align:center;font:700 76px/1.02 'GOAT Sans';text-transform:uppercase">{_titulo_duas_cores(spec['pergunta'])}</div>
+{_degrade_lateral(_alinhamento(spec))}<div id="t" style="position:absolute;{'left:64px;right:64px' if _alinhamento(spec)=='center' else ('left:64px;width:62%' if _alinhamento(spec)=='left' else 'right:64px;width:62%')};top:430px;text-align:{_alinhamento(spec)};font:700 76px/1.02 'GOAT Sans';text-transform:uppercase">{_titulo_duas_cores(spec['pergunta'])}</div>
 <div style="position:absolute;left:64px;right:64px;bottom:250px;text-align:center;font:600 26px/1 'GOAT Sans';letter-spacing:.1em;color:{Y};text-transform:uppercase">{esc(spec['campeonato'])}</div>
-<div style="position:absolute;left:64px;right:64px;bottom:160px;text-align:center;font:700 64px/1 'GOAT Sans';text-transform:uppercase">{confronto(spec['confronto'])}</div>
+<div style="position:absolute;left:64px;right:64px;bottom:160px;text-align:center;font:700 64px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap">{confronto(spec['confronto'])}</div>
 <div style="position:absolute;left:64px;right:64px;bottom:90px;text-align:center;font:600 40px/1 'GOAT Sans';letter-spacing:.06em"><span style="color:{Y}">{esc(spec['data'])}</span> · {esc(spec['hora'])}</div>"""
     return page(body)
 
@@ -244,11 +285,12 @@ def estatisticas(spec):
     nums = "".join(f'<div style="flex:1;text-align:center"><div style="font:700 96px/.95 \'GOAT Sans\';color:{Y}">{esc(n["valor"])}</div>'
                    f'<div style="margin-top:16px;font:500 32px/1.05 \'GOAT Sans\';text-transform:uppercase">{esc(n["rotulo"])}</div></div>' for n in spec["numeros"])
     body = f"""{bg}{ilustrativo(spec)}
-<div style="position:absolute;left:64px;right:64px;bottom:440px;text-align:center">
-<div style="font:400 34px/1 'GOAT Sans';letter-spacing:.06em;color:rgba(255,255,255,.78);margin-bottom:16px;text-transform:uppercase">{esc(spec.get('sobretitulo',''))}</div>
+<div style="position:absolute;left:64px;right:64px;bottom:{640 if spec.get('jogo') else 440}px;text-align:center">
+<div style="font:500 30px/1 'GOAT Sans';letter-spacing:.06em;color:{Y};margin-bottom:16px;text-transform:uppercase">{esc(spec.get('sobretitulo',''))}</div>
 <div style="font:700 80px/1 'GOAT Sans';text-transform:uppercase">{_titulo_duas_cores(spec['titulo'])}</div></div>
-<div style="position:absolute;left:64px;right:64px;bottom:200px;display:flex;gap:32px">{nums}</div>
-<div style="position:absolute;bottom:72px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 150)}</div>"""
+<div style="position:absolute;left:64px;right:64px;bottom:{400 if spec.get('jogo') else 200}px;display:flex;gap:32px">{nums}</div>
+{_rodape_jogo(spec)}
+{_marca_canto(spec, 'center') if spec.get('jogo') else f'<div style="position:absolute;bottom:72px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 150)}</div>'}"""
     return page(body)
 
 
@@ -258,6 +300,15 @@ TIPOS = {"agenda": agenda, "jogo_unico": jogo_unico, "manchete": manchete, "cham
 def render(spec, out_path):
     from playwright.sync_api import sync_playwright
     tipo = spec.get("tipo")
+    if tipo == "agenda" and len(spec.get("jogos") or []) == 1:
+        # regra do Gestor: dia com jogo único usa SEMPRE o modelo de jogo único
+        j = spec["jogos"][0]
+        foto = j.get("foto") or spec.get("fundo")
+        if not foto:
+            raise SystemExit("Dia com jogo único: o modelo de jogo único exige foto do jogo. Peça a foto ao robô e monte de novo.")
+        spec = {**spec, "tipo": "jogo_unico", "foto": foto, "foco": j.get("foco", "50% 30%"),
+                "campeonato": j.get("rotulo", ""), "horario": j.get("horario", ""), "confronto": j.get("confronto", "")}
+        tipo = "jogo_unico"
     if tipo not in TIPOS:
         raise SystemExit(f"tipo inválido: {tipo}. Use: {', '.join(TIPOS)}")
     doc = TIPOS[tipo](spec)
