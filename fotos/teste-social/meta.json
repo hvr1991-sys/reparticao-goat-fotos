@@ -1,0 +1,27 @@
+{
+  "id": "teste-social",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1080,
+      "altura": 1350,
+      "url_imagem": "https://pbs.twimg.com/media/HGy3FhHbAAAymxK?format=webp&name=large",
+      "pagina": "https://twitter.com/sportrecife/status/2048213287821537363",
+      "credito": "Sport Club do Recife (X)",
+      "rotulo": "Teste: post público do Sport no X",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1080,
+      "altura": 1350,
+      "url_imagem": "https://pbs.twimg.com/media/HGy3FhHbAAAymxK?format=webp&name=large",
+      "pagina": "https://x.com/sportrecife/status/2048213287821537363",
+      "credito": "Sport Club do Recife (X)",
+      "rotulo": "Teste: mesmo post em x.com",
+      "baixa_resolucao": false
+    }
+  ]
+}
