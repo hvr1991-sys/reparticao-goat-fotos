@@ -1,0 +1,27 @@
+{
+  "id": "70dc9d3f-a346-49a7-b505-24e325bd1c32-j43",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/zcpa9qor6re1qb9b45lb",
+      "pagina": "https://www.spl.com.sa/en/news/gueye-lage-and-co-embracing-challenge-as-diriyah-club-make-strong-start-to-rsl-life",
+      "credito": "Saudi Pro League",
+      "rotulo": "Diriyah - início na RSL",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/v1791441622/prd/ajc4fsy2rrptr0a8tldc",
+      "pagina": "https://www.spl.com.sa/en/news/the-new-boys-how-abha-al-faisaly-and-diriyah-club-have-settled-in-rsl",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Faisaly e Diriyah na RSL",
+      "baixa_resolucao": false
+    }
+  ]
+}
