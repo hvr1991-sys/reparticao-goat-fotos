@@ -179,19 +179,25 @@ def agenda(spec):
 
 
 def jogo_unico(spec):
+    """Agenda de jogo único — segue o modelo do Gestor (modelos/jogo-unico/MODELO_AGENDA_JOGO_UNICO_2.png):
+    foto inteira escurecida; topo: "AGENDA DO DIA" à esquerda e a data espaçada à direita;
+    base: campeonato espaçado e, logo abaixo, "21H | TIME A X TIME B" grande (hora e X em amarelo); logo centralizado."""
     foto = editorial(spec["foto"])
-    body = f"""<img src="{foto}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:{esc(spec.get('foco','50% 30%'))}">
-<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.9) 0%,rgba(0,0,0,.75) 22%,rgba(0,0,0,0) 55%)"></div>
-<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.55),rgba(0,0,0,0) 18%)"></div>
+    data_txt = esc(str(spec.get("data_resto") or spec.get("data") or "").upper())
+    body = f"""<img src="{foto}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:{esc(spec.get('foco','50% 30%'))};filter:brightness(.78)">
+<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 16%,rgba(0,0,0,0) 52%,rgba(0,0,0,.72) 70%,rgba(0,0,0,.97) 86%,#000 100%)"></div>
 {ilustrativo(spec)}
-<div style="position:absolute;top:70px;left:0;right:0;text-align:center;font:600 30px/1 'GOAT Sans';letter-spacing:.1em">AGENDA DO DIA</div>
-<div style="position:absolute;top:112px;left:0;right:0;text-align:center;font:500 24px/1 'GOAT Sans';letter-spacing:.08em;color:rgba(245,245,242,.78)"><span style="color:{Y}">{esc(spec['data_dia_semana'].upper())}</span> {esc(spec['data_resto'].upper())}</div>
-<div style="position:absolute;left:64px;right:64px;bottom:230px;text-align:center;font:600 26px/1 'GOAT Sans';letter-spacing:.1em;color:{Y};text-transform:uppercase">{esc(spec['campeonato'])}</div>
-<div id="linha" style="position:absolute;left:64px;right:64px;bottom:140px;text-align:center;font:700 64px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap">{esc(spec['horario']).upper()} <span style="color:rgba(245,245,242,.4)">|</span> {confronto(spec['confronto'])}</div>
-<div style="position:absolute;bottom:56px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 130)}</div>
-<script>const l=document.getElementById('linha');let s=76;while(l.scrollWidth>l.clientWidth&&s>36){{s-=2;l.style.fontSize=s+'px';}}</script>"""
+<div style="position:absolute;top:56px;left:54px;font:700 36px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap">AGENDA <span style="font-weight:500">DO DIA</span></div>
+<div style="position:absolute;top:60px;right:24px;font:600 30px/1 'GOAT Sans';letter-spacing:.3em;color:rgba(245,245,242,.85);text-transform:uppercase;white-space:nowrap">{data_txt}</div>
+<div style="position:absolute;left:0;right:0;top:982px;display:flex;justify-content:center">
+ <div id="bloco" style="max-width:940px">
+  <div style="font:500 28px/1 'GOAT Sans';letter-spacing:.3em;color:rgba(245,245,242,.82);text-transform:uppercase;white-space:nowrap;margin-bottom:22px">{esc(spec['campeonato'])}</div>
+  <div id="linha" style="font:700 104px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap;letter-spacing:-.02em"><span style="color:{Y}">{esc(spec['horario']).upper()}</span> <span style="font-weight:500;color:{WHITE}">|</span> {confronto(spec['confronto'])}</div>
+ </div>
+</div>
+<div style="position:absolute;top:1180px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 140)}</div>
+<script>const l=document.getElementById('linha');let s=104;while(l.scrollWidth>940&&s>44){{s-=2;l.style.fontSize=s+'px';}}</script>"""
     return page(body)
-
 
 def _alinhamento(spec):
     a = str(spec.get("alinhamento", "centro")).lower()

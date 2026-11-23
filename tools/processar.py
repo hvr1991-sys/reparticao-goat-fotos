@@ -150,18 +150,22 @@ def salvar_no_repo():
 
 
 def fontes_privadas():
-    """Baixa as fontes licenciadas (Helvetica Neue) do bucket privado para kit/fonts/private/ (fora do git)."""
+    """Fontes licenciadas (Helvetica Neue): ficam criptografadas em kit/fonts/enc/ no repositório público.
+    O robô pega a chave no Supabase (token OIDC) e descriptografa para kit/fonts/private/ (fora do git)."""
     try:
-        req = urllib.request.Request(JOBS_URL + "?acao=fontes", headers={"Authorization": "Bearer " + oidc()})
+        req = urllib.request.Request(JOBS_URL + "?acao=chave-fontes", headers={"Authorization": "Bearer " + oidc()})
         with urllib.request.urlopen(req, timeout=60) as r:
-            lista = json.load(r)
+            chave = json.load(r).get("chave")
+        if not chave:
+            print("sem chave das fontes", flush=True)
+            return
         dest = ROOT / "kit" / "fonts" / "private"
         dest.mkdir(parents=True, exist_ok=True)
-        for f in lista:
-            if re.match(r"^[A-Za-z0-9._-]+$", f["nome"]):
-                with urllib.request.urlopen(f["url"], timeout=60) as r:
-                    (dest / f["nome"]).write_bytes(r.read())
-        print("fontes privadas:", [f["nome"] for f in lista], flush=True)
+        for enc in sorted((ROOT / "kit" / "fonts" / "enc").glob("*.enc")):
+            out = dest / enc.name[:-4]
+            subprocess.run(["openssl", "enc", "-d", "-aes-256-cbc", "-pbkdf2", "-in", str(enc), "-out", str(out), "-pass", "env:FONT_KEY"],
+                           check=True, env={**os.environ, "FONT_KEY": chave})
+        print("fontes privadas prontas:", [f.name for f in dest.iterdir()], flush=True)
     except Exception as e:
         print("sem fontes privadas:", e, flush=True)
 

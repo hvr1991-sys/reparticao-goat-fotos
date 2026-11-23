@@ -1,0 +1,1 @@
+Modelo oficial do Gestor para AGENDA DE JOGO ÚNICO (dia com um jogo só): foto inteira escurecida; topo com AGENDA DO DIA à esquerda e a data espaçada à direita; na base o campeonato espaçado e '21H | TIME A X TIME B' grande (hora e X em amarelo); logo centralizado embaixo. Usar SEMPRE em dia de jogo único.
