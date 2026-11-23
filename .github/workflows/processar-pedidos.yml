@@ -3,7 +3,7 @@ name: Processar pedidos da Repartição
 # A rodada agendada grava pedidos (fotos e artes) na fila rg_jobs do Supabase.
 # Este robô fica de plantão ~50 min por execução, olhando a fila a cada 30 s:
 # baixa as fotos, monta as artes com o kit e envia ao painel.
-# O agendamento abaixo garante que sempre haja um plantão ativo (só um por vez).
+# Ao terminar, cada plantão chama o próximo; o agendamento abaixo é a reserva (só um por vez).
 # Autenticação por token OIDC do GitHub: nenhum segredo guardado.
 
 on:
@@ -14,6 +14,7 @@ on:
 permissions:
   contents: write
   id-token: write
+  actions: write
 
 concurrency:
   group: processar-pedidos
@@ -35,3 +36,9 @@ jobs:
           git config user.name "reparticao-goat-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           python tools/processar.py 50
+      # emenda o próximo plantão (o agendamento do GitHub às vezes atrasa ou não dispara)
+      - name: Próximo plantão
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run processar-pedidos.yml --ref main -R "$GITHUB_REPOSITORY"
