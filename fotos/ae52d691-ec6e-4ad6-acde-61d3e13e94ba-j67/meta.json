@@ -1,0 +1,21 @@
+{
+  "id": "ae52d691-ec6e-4ad6-acde-61d3e13e94ba-j67",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1722,
+      "altura": 2046,
+      "url_imagem": "https://atleticogoianiense.com.br/thumb/noticias/ingresso_3060_2.png",
+      "pagina": "https://atleticogoianiense.com.br/noticias/ingressos-playoff-brasileiro-serie-b-atletico-x-vila-nova.html",
+      "credito": "Atlético Clube Goianiense",
+      "rotulo": "Atlético x Vila Nova playoff",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": false,
+      "pagina": "https://www.vilanovafc.com.br/noticias/555-venda-de-ingressos-vila-nova-x-atletico-go-serie-b-2026-playoffs",
+      "erro": "robô simples: HTTP Error 403: Forbidden · navegador: página sem imagem principal (título: Um momento…)"
+    }
+  ]
+}
