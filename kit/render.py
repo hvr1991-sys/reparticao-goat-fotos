@@ -32,14 +32,27 @@ def data_uri(path, mime):
     return f"data:{mime};base64," + base64.b64encode(Path(path).read_bytes()).decode()
 
 
+FONT = "GOAT Sans"  # Helvetica Neue Medium (texto) e Bold (destaques), padrão da marca
+
+
+def _fonte_privada(peso):
+    # arquivos licenciados ficam fora do repositório público: o robô baixa do Supabase para kit/fonts/private/
+    pasta = KIT / "fonts" / "private"
+    for ext, fmt, mime in (("otf", "opentype", "font/otf"), ("ttf", "truetype", "font/ttf"), ("woff2", "woff2", "font/woff2")):
+        f = pasta / f"HelveticaNeue-{peso}.{ext}"
+        if f.exists():
+            return f"url({data_uri(f, mime)}) format('{fmt}'), "
+    return ""
+
+
 def fonts_css():
-    f = KIT / "fonts"
-    faces = [("BarlowCondensed-Regular.woff2", 400, "woff2"), ("BarlowCondensed-Medium.ttf", 500, "truetype"),
-             ("BarlowCondensed-SemiBold.woff2", 600, "woff2"), ("BarlowCondensed-Bold.woff2", 700, "woff2")]
+    med = _fonte_privada("Medium") + "local('Helvetica Neue Medium'), local('HelveticaNeue-Medium'), local('Arimo'), local('Liberation Sans')"
+    bold = _fonte_privada("Bold") + "local('Helvetica Neue Bold'), local('HelveticaNeue-Bold'), local('Arimo Bold'), local('Liberation Sans Bold')"
     out = []
-    for name, wt, fmt in faces:
-        mime = "font/woff2" if fmt == "woff2" else "font/ttf"
-        out.append(f"@font-face{{font-family:'Barlow Condensed';font-weight:{wt};src:url({data_uri(f / name, mime)}) format('{fmt}');}}")
+    for wt in (300, 400, 500):
+        out.append(f"@font-face{{font-family:'{FONT}';font-weight:{wt};src:{med};}}")
+    for wt in (600, 700, 800):
+        out.append(f"@font-face{{font-family:'{FONT}';font-weight:{wt};src:{bold};}}")
     return "\n".join(out)
 
 
@@ -91,7 +104,7 @@ def ilustrativo(spec):
     if not spec.get("ilustrativo"):
         return ""
     return (f'<div style="position:absolute;top:22px;right:22px;border:2px solid {MUTED};color:{WHITE};'
-            f'font:600 22px/1 \'Barlow Condensed\';letter-spacing:.12em;padding:8px 10px;z-index:9">DADOS ILUSTRATIVOS</div>')
+            f'font:600 22px/1 \'GOAT Sans\';letter-spacing:.06em;padding:8px 10px;z-index:9">DADOS ILUSTRATIVOS</div>')
 
 
 def page(body, w=W, h=H):
@@ -99,9 +112,10 @@ def page(body, w=W, h=H):
 {fonts_css()}
 *{{box-sizing:border-box}}
 html,body{{margin:0;width:{w}px;height:{h}px;overflow:hidden;background:{BLACK}}}
-body{{font-family:'Barlow Condensed',sans-serif;color:{WHITE};-webkit-font-smoothing:antialiased}}
+body{{font-family:'GOAT Sans',sans-serif;color:{WHITE};-webkit-font-smoothing:antialiased}}
 .art{{position:relative;width:{w}px;height:{h}px;overflow:hidden;background:{BLACK}}}
-</style></head><body><div class="art">{body}</div></body></html>"""
+</style></head><body><div class="art">{body}</div>
+<script>document.fonts.ready.then(()=>{{for(const el of document.querySelectorAll('.art div')){{const cs=getComputedStyle(el);if(cs.whiteSpace!=='nowrap')continue;let s=parseFloat(cs.fontSize);while(el.scrollWidth>el.clientWidth+1&&s>14){{s-=1;el.style.fontSize=s+'px';}}}}document.body.dataset.ok=1;}});</script></body></html>"""
 
 
 # ---------------- peças ----------------
@@ -134,23 +148,23 @@ def agenda(spec):
         # título cabe inteiro: reduz a fonte em confrontos longos (sem reticências)
         limite = 17 if foto else 30
         n_chars = len(str(j.get("confronto", "")))
-        tam = 38 if n_chars <= limite else max(26, int(38 * limite / n_chars))
+        tam = 32 if n_chars <= limite else max(22, int(32 * limite / n_chars))
         titulo = confronto(j["confronto"]) if " X " in str(j.get("confronto", "")).upper() else esc(str(j.get("confronto", "")).upper())
         cards.append(f"""
 <div style="position:absolute;left:{(W-910)//2}px;top:{y}px;width:910px;height:{card_h}px;border-radius:16px;overflow:hidden;
  background:linear-gradient(180deg,{SURF2},{SURF1});box-shadow:inset 0 0 0 1px rgba(245,245,242,.06)">
  <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:{Y}"></div>
  {foto_html}
- <div style="position:absolute;left:34px;top:0;bottom:0;width:150px;display:flex;align-items:center;font:600 56px/1 'Barlow Condensed';color:{WHITE};text-transform:uppercase">{esc(j["horario"]).upper()}</div>
+ <div style="position:absolute;left:34px;top:0;bottom:0;width:150px;display:flex;align-items:center;font:700 46px/1 'GOAT Sans';color:{WHITE};text-transform:uppercase">{esc(j["horario"]).upper()}</div>
  <div style="position:absolute;left:190px;top:24px;bottom:24px;width:1px;background:rgba(245,245,242,.22)"></div>
  <div style="position:absolute;left:216px;right:{'40%' if foto else '30px'};top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:8px">
-  <div style="font:600 19px/1 'Barlow Condensed';letter-spacing:.14em;color:{Y};text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{esc(j["rotulo"])}</div>
-  <div style="font:700 {tam}px/1 'Barlow Condensed';color:{WHITE};text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{titulo}</div>
+  <div style="font:600 19px/1 'GOAT Sans';letter-spacing:.08em;color:{Y};text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{esc(j["rotulo"])}</div>
+  <div style="font:700 {tam}px/1 'GOAT Sans';color:{WHITE};text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{titulo}</div>
  </div>
 </div>""")
     body = f"""{bg}{ilustrativo(spec)}
-<div style="position:absolute;top:118px;left:0;right:0;text-align:center;font:700 112px/1 'Barlow Condensed';letter-spacing:.01em">AGENDA <span style="font-weight:400">DO DIA</span></div>
-<div style="position:absolute;top:248px;left:0;right:0;text-align:center;font:600 32px/1 'Barlow Condensed';letter-spacing:.12em;color:rgba(245,245,242,.78)"><span style="color:{Y}">{esc(dia)}</span> {esc(resto)}</div>
+<div style="position:absolute;top:118px;left:0;right:0;text-align:center;font:700 96px/1 'GOAT Sans';letter-spacing:.01em">AGENDA <span style="font-weight:400">DO DIA</span></div>
+<div style="position:absolute;top:248px;left:0;right:0;text-align:center;font:600 32px/1 'GOAT Sans';letter-spacing:.06em;color:rgba(245,245,242,.78)"><span style="color:{Y}">{esc(dia)}</span> {esc(resto)}</div>
 {''.join(cards)}
 <div style="position:absolute;bottom:72px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 150)}</div>"""
     return page(body)
@@ -162,10 +176,10 @@ def jogo_unico(spec):
 <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.9) 0%,rgba(0,0,0,.75) 22%,rgba(0,0,0,0) 55%)"></div>
 <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.55),rgba(0,0,0,0) 18%)"></div>
 {ilustrativo(spec)}
-<div style="position:absolute;top:70px;left:0;right:0;text-align:center;font:600 30px/1 'Barlow Condensed';letter-spacing:.16em">AGENDA DO DIA</div>
-<div style="position:absolute;top:112px;left:0;right:0;text-align:center;font:500 24px/1 'Barlow Condensed';letter-spacing:.14em;color:rgba(245,245,242,.78)"><span style="color:{Y}">{esc(spec['data_dia_semana'].upper())}</span> {esc(spec['data_resto'].upper())}</div>
-<div style="position:absolute;left:64px;right:64px;bottom:230px;text-align:center;font:600 26px/1 'Barlow Condensed';letter-spacing:.16em;color:{Y};text-transform:uppercase">{esc(spec['campeonato'])}</div>
-<div id="linha" style="position:absolute;left:64px;right:64px;bottom:140px;text-align:center;font:700 76px/1 'Barlow Condensed';text-transform:uppercase;white-space:nowrap">{esc(spec['horario']).upper()} <span style="color:rgba(245,245,242,.4)">|</span> {confronto(spec['confronto'])}</div>
+<div style="position:absolute;top:70px;left:0;right:0;text-align:center;font:600 30px/1 'GOAT Sans';letter-spacing:.1em">AGENDA DO DIA</div>
+<div style="position:absolute;top:112px;left:0;right:0;text-align:center;font:500 24px/1 'GOAT Sans';letter-spacing:.08em;color:rgba(245,245,242,.78)"><span style="color:{Y}">{esc(spec['data_dia_semana'].upper())}</span> {esc(spec['data_resto'].upper())}</div>
+<div style="position:absolute;left:64px;right:64px;bottom:230px;text-align:center;font:600 26px/1 'GOAT Sans';letter-spacing:.1em;color:{Y};text-transform:uppercase">{esc(spec['campeonato'])}</div>
+<div id="linha" style="position:absolute;left:64px;right:64px;bottom:140px;text-align:center;font:700 64px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap">{esc(spec['horario']).upper()} <span style="color:rgba(245,245,242,.4)">|</span> {confronto(spec['confronto'])}</div>
 <div style="position:absolute;bottom:56px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 130)}</div>
 <script>const l=document.getElementById('linha');let s=76;while(l.scrollWidth>l.clientWidth&&s>36){{s-=2;l.style.fontSize=s+'px';}}</script>"""
     return page(body)
@@ -183,12 +197,12 @@ def manchete(spec):
               '<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.88) 0%,rgba(0,0,0,.8) 30%,rgba(0,0,0,0) 62%)"></div>')
     else:
         bg = '<div style="position:absolute;inset:0;background:#181818"></div>'
-    sobre = f'<div style="font:400 34px/1 \'Barlow Condensed\';letter-spacing:.12em;color:rgba(255,255,255,.78);margin-bottom:22px;text-transform:uppercase">{esc(spec.get("sobretitulo",""))}</div>' if spec.get("sobretitulo") else ""
-    apoio = f'<div style="font:400 40px/1.15 \'Barlow Condensed\';color:{WHITE};margin-top:26px">{spec_apoio(spec)}</div>' if spec.get("apoio") else ""
-    size = spec.get("tamanho_titulo", 104)
+    sobre = f'<div style="font:400 34px/1 \'GOAT Sans\';letter-spacing:.06em;color:rgba(255,255,255,.78);margin-bottom:22px;text-transform:uppercase">{esc(spec.get("sobretitulo",""))}</div>' if spec.get("sobretitulo") else ""
+    apoio = f'<div style="font:400 40px/1.15 \'GOAT Sans\';color:{WHITE};margin-top:26px">{spec_apoio(spec)}</div>' if spec.get("apoio") else ""
+    size = spec.get("tamanho_titulo", 86)
     body = f"""{bg}{ilustrativo(spec)}
 <div style="position:absolute;left:64px;right:64px;bottom:{'250' if foto else '420'}px;text-align:center">
-{sobre}<div id="t" style="font:700 {size}px/.96 'Barlow Condensed'">{_titulo_duas_cores(spec['titulo'])}</div>{apoio}</div>
+{sobre}<div id="t" style="font:700 {size}px/.96 'GOAT Sans'">{_titulo_duas_cores(spec['titulo'])}</div>{apoio}</div>
 <div style="position:absolute;bottom:72px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 150)}</div>
 <script>const t=document.getElementById('t');let s={size};while(t.scrollWidth>t.clientWidth&&s>48){{s-=2;t.style.fontSize=s+'px';}}</script>"""
     return page(body)
@@ -208,10 +222,10 @@ def chamada(spec):
 <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.88),rgba(0,0,0,0) 55%)"></div>
 {ilustrativo(spec)}
 <div style="position:absolute;top:64px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 150)}</div>
-<div style="position:absolute;left:64px;right:64px;top:430px;text-align:center;font:700 92px/.98 'Barlow Condensed';text-transform:uppercase">{_titulo_duas_cores(spec['pergunta'])}</div>
-<div style="position:absolute;left:64px;right:64px;bottom:250px;text-align:center;font:600 26px/1 'Barlow Condensed';letter-spacing:.16em;color:{Y};text-transform:uppercase">{esc(spec['campeonato'])}</div>
-<div style="position:absolute;left:64px;right:64px;bottom:160px;text-align:center;font:700 64px/1 'Barlow Condensed';text-transform:uppercase">{confronto(spec['confronto'])}</div>
-<div style="position:absolute;left:64px;right:64px;bottom:90px;text-align:center;font:600 40px/1 'Barlow Condensed';letter-spacing:.06em"><span style="color:{Y}">{esc(spec['data'])}</span> · {esc(spec['hora'])}</div>"""
+<div style="position:absolute;left:64px;right:64px;top:430px;text-align:center;font:700 76px/1.02 'GOAT Sans';text-transform:uppercase">{_titulo_duas_cores(spec['pergunta'])}</div>
+<div style="position:absolute;left:64px;right:64px;bottom:250px;text-align:center;font:600 26px/1 'GOAT Sans';letter-spacing:.1em;color:{Y};text-transform:uppercase">{esc(spec['campeonato'])}</div>
+<div style="position:absolute;left:64px;right:64px;bottom:160px;text-align:center;font:700 64px/1 'GOAT Sans';text-transform:uppercase">{confronto(spec['confronto'])}</div>
+<div style="position:absolute;left:64px;right:64px;bottom:90px;text-align:center;font:600 40px/1 'GOAT Sans';letter-spacing:.06em"><span style="color:{Y}">{esc(spec['data'])}</span> · {esc(spec['hora'])}</div>"""
     return page(body)
 
 
@@ -219,12 +233,12 @@ def estatisticas(spec):
     foto = spec.get("foto")
     bg = (f'<img src="{editorial(foto)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:{esc(spec.get("foco","50% 20%"))}">'
           '<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.92) 0%,rgba(0,0,0,.8) 38%,rgba(0,0,0,0) 70%)"></div>') if foto else '<div style="position:absolute;inset:0;background:#181818"></div>'
-    nums = "".join(f'<div style="flex:1;text-align:center"><div style="font:700 110px/.9 \'Barlow Condensed\';color:{Y}">{esc(n["valor"])}</div>'
-                   f'<div style="margin-top:16px;font:500 32px/1.05 \'Barlow Condensed\';text-transform:uppercase">{esc(n["rotulo"])}</div></div>' for n in spec["numeros"])
+    nums = "".join(f'<div style="flex:1;text-align:center"><div style="font:700 96px/.95 \'GOAT Sans\';color:{Y}">{esc(n["valor"])}</div>'
+                   f'<div style="margin-top:16px;font:500 32px/1.05 \'GOAT Sans\';text-transform:uppercase">{esc(n["rotulo"])}</div></div>' for n in spec["numeros"])
     body = f"""{bg}{ilustrativo(spec)}
 <div style="position:absolute;left:64px;right:64px;bottom:440px;text-align:center">
-<div style="font:400 34px/1 'Barlow Condensed';letter-spacing:.12em;color:rgba(255,255,255,.78);margin-bottom:16px;text-transform:uppercase">{esc(spec.get('sobretitulo',''))}</div>
-<div style="font:700 96px/.96 'Barlow Condensed';text-transform:uppercase">{_titulo_duas_cores(spec['titulo'])}</div></div>
+<div style="font:400 34px/1 'GOAT Sans';letter-spacing:.06em;color:rgba(255,255,255,.78);margin-bottom:16px;text-transform:uppercase">{esc(spec.get('sobretitulo',''))}</div>
+<div style="font:700 80px/1 'GOAT Sans';text-transform:uppercase">{_titulo_duas_cores(spec['titulo'])}</div></div>
 <div style="position:absolute;left:64px;right:64px;bottom:200px;display:flex;gap:32px">{nums}</div>
 <div style="position:absolute;bottom:72px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 150)}</div>"""
     return page(body)
@@ -245,6 +259,7 @@ def render(spec, out_path):
         pg = b.new_page(viewport={"width": W, "height": H}, device_scale_factor=1)
         pg.set_content(doc, wait_until="load")
         pg.evaluate("document.fonts.ready")
+        pg.wait_for_function("document.body.dataset.ok==1", timeout=5000)
         pg.wait_for_timeout(150)
         pg.screenshot(path=out_path, clip={"x": 0, "y": 0, "width": W, "height": H})
         b.close()

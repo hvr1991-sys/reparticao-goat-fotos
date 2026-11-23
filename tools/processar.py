@@ -149,9 +149,73 @@ def salvar_no_repo():
     return False
 
 
+def fontes_privadas():
+    """Baixa as fontes licenciadas (Helvetica Neue) do bucket privado para kit/fonts/private/ (fora do git)."""
+    try:
+        req = urllib.request.Request(JOBS_URL + "?acao=fontes", headers={"Authorization": "Bearer " + oidc()})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            lista = json.load(r)
+        dest = ROOT / "kit" / "fonts" / "private"
+        dest.mkdir(parents=True, exist_ok=True)
+        for f in lista:
+            if re.match(r"^[A-Za-z0-9._-]+$", f["nome"]):
+                with urllib.request.urlopen(f["url"], timeout=60) as r:
+                    (dest / f["nome"]).write_bytes(r.read())
+        print("fontes privadas:", [f["nome"] for f in lista], flush=True)
+    except Exception as e:
+        print("sem fontes privadas:", e, flush=True)
+
+
+def designers_gemini():
+    """Designers no Gemini: produz as artes dos cards em produção (se houver GEMINI_API_KEY)."""
+    if not os.environ.get("GEMINI_API_KEY"):
+        return False
+    sys.path.insert(0, str(ROOT / "tools"))
+    import gemini
+    req = urllib.request.Request(JOBS_URL + "?acao=producao&n=3", headers={"Authorization": "Bearer " + oidc()})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        lote = json.load(r)
+    cards = lote.get("cards") or []
+    if not cards:
+        return False
+    token = oidc()
+
+    def baixar_fotos(card_id, itens, tag):
+        pasta = f"{card_id}-{tag}"
+        (ROOT / "jobs").mkdir(exist_ok=True)
+        (ROOT / "jobs" / f"{pasta}.json").write_text(json.dumps({"id": pasta, "fotos": itens}, ensure_ascii=False), encoding="utf-8")
+        meta = ROOT / "fotos" / pasta / "meta.json"
+        if meta.exists():
+            meta.unlink()
+        subprocess.run([sys.executable, str(ROOT / "tools" / "baixar.py")], check=False)
+        if not meta.exists():
+            return f"fotos/{pasta}", []
+        m = json.loads(meta.read_text(encoding="utf-8"))
+        return f"fotos/{pasta}", [(f"fotos/{pasta}/{f['arquivo']}", f) for f in m.get("fotos", []) if f.get("ok")]
+
+    def montar(card_id, spec):
+        status, result = arte({"id": f"g-{card_id[:8]}", "card_id": card_id, "payload": {"n": 1, "spec": spec}}, oidc())
+        png = ROOT / result["arquivo"] if result.get("arquivo") else None
+        return status, result, png
+
+    def informar(body):
+        salvar_no_repo()
+        req = urllib.request.Request(JOBS_URL + "?acao=card", data=json.dumps(body).encode(), method="POST",
+                                     headers={"Authorization": "Bearer " + oidc(), "Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            r.read()
+
+    for c in cards:
+        print("Gemini produzindo:", c["title"], flush=True)
+        gemini.produzir(c, lote.get("docs") or [], baixar_fotos, montar, informar)
+    return True
+
+
 def vigiar(minutos):
     """Fica de plantão: olha a fila a cada 30 s e processa o que chegar."""
     fim = time.time() + minutos * 60
+    fontes_privadas()
+    proxima_producao = 0
     while time.time() < fim:
         try:
             jobs = chamar("GET")
@@ -170,6 +234,13 @@ def vigiar(minutos):
             except Exception as e:
                 print("falha ao informar resultados:", e, flush=True)
             continue
+        if time.time() >= proxima_producao:
+            try:
+                if designers_gemini():
+                    continue
+            except Exception as e:
+                print("designers Gemini indisponíveis:", e, flush=True)
+            proxima_producao = time.time() + 120
         time.sleep(30)
 
 
