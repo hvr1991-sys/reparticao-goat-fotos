@@ -32,27 +32,19 @@ def data_uri(path, mime):
     return f"data:{mime};base64," + base64.b64encode(Path(path).read_bytes()).decode()
 
 
-FONT = "GOAT Sans"  # Helvetica Neue Medium (texto) e Bold (destaques), padrão da marca
-
-
-def _fonte_privada(peso):
-    # arquivos licenciados ficam fora do repositório público: o robô baixa do Supabase para kit/fonts/private/
-    pasta = KIT / "fonts" / "private"
-    for ext, fmt, mime in (("otf", "opentype", "font/otf"), ("ttf", "truetype", "font/ttf"), ("woff2", "woff2", "font/woff2")):
-        f = pasta / f"HelveticaNeue-{peso}.{ext}"
-        if f.exists():
-            return f"url({data_uri(f, mime)}) format('{fmt}'), "
-    return ""
+FONT = "GOAT Sans"  # Barlow Condensed em todas as artes (padrão dos modelos do Gestor)
 
 
 def fonts_css():
-    med = _fonte_privada("Medium") + "local('Helvetica Neue Medium'), local('HelveticaNeue-Medium'), local('Arimo'), local('Liberation Sans')"
-    bold = _fonte_privada("Bold") + "local('Helvetica Neue Bold'), local('HelveticaNeue-Bold'), local('Arimo Bold'), local('Liberation Sans Bold')"
+    f = KIT / "fonts"
+    faces = [("BarlowCondensed-Regular.woff2", (300, 400), "woff2"), ("BarlowCondensed-Medium.ttf", (500,), "truetype"),
+             ("BarlowCondensed-SemiBold.woff2", (600,), "woff2"), ("BarlowCondensed-Bold.woff2", (700, 800), "woff2")]
     out = []
-    for wt in (300, 400, 500):
-        out.append(f"@font-face{{font-family:'{FONT}';font-weight:{wt};src:{med};}}")
-    for wt in (600, 700, 800):
-        out.append(f"@font-face{{font-family:'{FONT}';font-weight:{wt};src:{bold};}}")
+    for name, pesos, fmt in faces:
+        mime = "font/woff2" if fmt == "woff2" else "font/ttf"
+        uri = data_uri(f / name, mime)
+        for wt in pesos:
+            out.append(f"@font-face{{font-family:'{FONT}';font-weight:{wt};src:url({uri}) format('{fmt}');}}")
     return "\n".join(out)
 
 
@@ -115,7 +107,7 @@ html,body{{margin:0;width:{w}px;height:{h}px;overflow:hidden;background:{BLACK}}
 body{{font-family:'GOAT Sans',sans-serif;color:{WHITE};-webkit-font-smoothing:antialiased}}
 .art{{position:relative;width:{w}px;height:{h}px;overflow:hidden;background:{BLACK}}}
 </style></head><body><div class="art">{body}</div>
-<script>document.fonts.ready.then(()=>{{for(const el of document.querySelectorAll('.art div')){{const cs=getComputedStyle(el);if(cs.whiteSpace!=='nowrap')continue;let s=parseFloat(cs.fontSize);while(el.scrollWidth>el.clientWidth+1&&s>14){{s-=1;el.style.fontSize=s+'px';}}}}document.body.dataset.ok=1;}});</script></body></html>"""
+<script>document.fonts.ready.then(()=>new Promise(r=>setTimeout(r,30))).then(()=>{{for(const el of document.querySelectorAll('.art div')){{const cs=getComputedStyle(el);if(cs.whiteSpace!=='nowrap')continue;let s=parseFloat(cs.fontSize);while(el.scrollWidth>el.clientWidth+1&&s>14){{s-=1;el.style.fontSize=s+'px';}}}}document.body.dataset.ok=1;}});</script></body></html>"""
 
 
 # ---------------- peças ----------------
@@ -187,16 +179,16 @@ def jogo_unico(spec):
     body = f"""<img src="{foto}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:{esc(spec.get('foco','50% 30%'))};filter:brightness(.78)">
 <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 16%,rgba(0,0,0,0) 52%,rgba(0,0,0,.72) 70%,rgba(0,0,0,.97) 86%,#000 100%)"></div>
 {ilustrativo(spec)}
-<div style="position:absolute;top:56px;left:54px;font:700 36px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap">AGENDA <span style="font-weight:500">DO DIA</span></div>
-<div style="position:absolute;top:60px;right:24px;font:600 30px/1 'GOAT Sans';letter-spacing:.3em;color:rgba(245,245,242,.85);text-transform:uppercase;white-space:nowrap">{data_txt}</div>
-<div style="position:absolute;left:0;right:0;top:982px;display:flex;justify-content:center">
- <div id="bloco" style="max-width:940px">
+<div style="position:absolute;top:56px;left:54px;font:700 40px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap">AGENDA <span style="font-weight:400">DO DIA</span></div>
+<div style="position:absolute;top:62px;right:24px;font:600 30px/1 'GOAT Sans';letter-spacing:.3em;color:rgba(245,245,242,.85);text-transform:uppercase;white-space:nowrap">{data_txt}</div>
+<div style="position:absolute;left:0;right:0;top:982px;text-align:center">
+ <div id="bloco" style="display:inline-block;text-align:left;max-width:960px">
   <div style="font:500 28px/1 'GOAT Sans';letter-spacing:.3em;color:rgba(245,245,242,.82);text-transform:uppercase;white-space:nowrap;margin-bottom:22px">{esc(spec['campeonato'])}</div>
-  <div id="linha" style="font:700 104px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap;letter-spacing:-.02em"><span style="color:{Y}">{esc(spec['horario']).upper()}</span> <span style="font-weight:500;color:{WHITE}">|</span> {confronto(spec['confronto'])}</div>
+  <div id="linha" style="font:600 136px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap;letter-spacing:-.01em"><span style="color:{Y}">{esc(spec['horario']).upper()}</span> <span style="font-weight:500;color:{WHITE}">|</span> {confronto(spec['confronto'])}</div>
  </div>
 </div>
 <div style="position:absolute;top:1180px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 140)}</div>
-<script>const l=document.getElementById('linha');let s=104;while(l.scrollWidth>940&&s>44){{s-=2;l.style.fontSize=s+'px';}}</script>"""
+<script>document.fonts.ready.then(()=>{{const l=document.getElementById('linha');let s=136;while(l.scrollWidth>960&&s>44){{s-=2;l.style.fontSize=s+'px';}}}});</script>"""
     return page(body)
 
 def _alinhamento(spec):
@@ -259,7 +251,7 @@ def manchete(spec):
 {sobre}<div id="t" style="font:700 {size}px/.98 'GOAT Sans'">{_titulo_duas_cores(spec['titulo'])}</div>{apoio}</div>
 {_rodape_jogo(spec)}
 {marca}
-<script>const t=document.getElementById('t');let s={size};while(t.scrollWidth>t.clientWidth&&s>44){{s-=2;t.style.fontSize=s+'px';}}</script>"""
+<script>document.fonts.ready.then(()=>{{const t=document.getElementById('t');let s={size};while(t.scrollWidth>t.clientWidth&&s>44){{s-=2;t.style.fontSize=s+'px';}}}});</script>"""
     return page(body)
 
 
