@@ -1,0 +1,38 @@
+{
+  "id": "bc232511-0f07-498e-ac1f-7c209b7e18d5-j41",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 2560,
+      "altura": 1233,
+      "url_imagem": "https://sv07elversberg.de/wp-content/uploads/2026/05/DSC06555-hp-scaled.jpg",
+      "pagina": "https://sv07elversberg.de/freudentaumel-an-der-kaiserlinde-sve-schlaegt-preussen-muenster-und-steigt-in-die-1-bundesliga-auf/",
+      "credito": "SV 07 Elversberg",
+      "rotulo": "Elversberg acesso à Bundesliga",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 2560,
+      "altura": 1128,
+      "url_imagem": "https://sv07elversberg.de/wp-content/uploads/2026/07/DSC04566-hp-scaled.jpg",
+      "pagina": "https://sv07elversberg.de/gemeinsam-in-die-bundesliga-die-elv-x-energis-saisoneroeffnung-2026/",
+      "credito": "SV 07 Elversberg",
+      "rotulo": "Elversberg abertura da temporada",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "3.png",
+      "largura": 2560,
+      "altura": 1382,
+      "url_imagem": "https://sv07elversberg.de/wp-content/uploads/2025/10/DSC04402-hp-scaled.jpg",
+      "pagina": "https://sv07elversberg.de/60-kantersieg-gegen-fuerth-laesst-die-kaiserlinde-beben/",
+      "credito": "SV 07 Elversberg",
+      "rotulo": "Elversberg na Kaiserlinde",
+      "baixa_resolucao": false
+    }
+  ]
+}
