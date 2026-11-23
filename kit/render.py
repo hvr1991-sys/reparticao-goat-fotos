@@ -131,6 +131,10 @@ def agenda(spec):
             foto_html = (f'<div style="position:absolute;right:0;top:0;bottom:0;width:42%;overflow:hidden;border-radius:0 16px 16px 0">'
                          f'<img src="{editorial(foto)}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{esc(j.get("foco","70% 25%"))}">'
                          f'<div style="position:absolute;inset:0;background:linear-gradient(90deg,{SURF2} 0%,rgba(20,20,22,.85) 18%,rgba(20,20,22,.35) 55%,rgba(20,20,22,0) 85%)"></div></div>')
+        # título cabe inteiro: reduz a fonte em confrontos longos (sem reticências)
+        limite = 17 if foto else 30
+        n_chars = len(str(j.get("confronto", "")))
+        tam = 38 if n_chars <= limite else max(26, int(38 * limite / n_chars))
         titulo = confronto(j["confronto"]) if " X " in str(j.get("confronto", "")).upper() else esc(str(j.get("confronto", "")).upper())
         cards.append(f"""
 <div style="position:absolute;left:{(W-910)//2}px;top:{y}px;width:910px;height:{card_h}px;border-radius:16px;overflow:hidden;
@@ -141,7 +145,7 @@ def agenda(spec):
  <div style="position:absolute;left:190px;top:24px;bottom:24px;width:1px;background:rgba(245,245,242,.22)"></div>
  <div style="position:absolute;left:216px;right:{'40%' if foto else '30px'};top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:8px">
   <div style="font:600 19px/1 'Barlow Condensed';letter-spacing:.14em;color:{Y};text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{esc(j["rotulo"])}</div>
-  <div style="font:700 38px/1 'Barlow Condensed';color:{WHITE};text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{titulo}</div>
+  <div style="font:700 {tam}px/1 'Barlow Condensed';color:{WHITE};text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{titulo}</div>
  </div>
 </div>""")
     body = f"""{bg}{ilustrativo(spec)}
