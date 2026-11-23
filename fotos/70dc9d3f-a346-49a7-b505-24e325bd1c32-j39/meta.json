@@ -1,0 +1,38 @@
+{
+  "id": "70dc9d3f-a346-49a7-b505-24e325bd1c32-j39",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/v1793266927/prd/e88qiczbgvqnsjve04of",
+      "pagina": "https://www.spl.com.sa/en/news/boulbina-and-benrahma-all-algerian-clash-combining-ability-and-ambition",
+      "credito": "Saudi Pro League",
+      "rotulo": "Diriyah - Boulbina",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/cf51lw9ldbtmjbytr7xu",
+      "pagina": "https://www.spl.com.sa/en/videos/youtube/darwin-nunez-strikes-again-as-diriyah-club-overcome-al-fateh-powered-by-toyota",
+      "credito": "Saudi Pro League",
+      "rotulo": "Diriyah x Al Fateh",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "3.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/qkflwpvnlepzicebfxky",
+      "pagina": "https://www.spl.com.sa/en/videos/youtube/diriyah-club-trump-riyadh-rivals-powered-by-toyota",
+      "credito": "Saudi Pro League",
+      "rotulo": "Diriyah vence rivais de Riad",
+      "baixa_resolucao": false
+    }
+  ]
+}

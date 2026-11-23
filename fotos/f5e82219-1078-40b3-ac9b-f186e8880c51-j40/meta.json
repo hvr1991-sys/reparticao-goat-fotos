@@ -1,0 +1,38 @@
+{
+  "id": "f5e82219-1078-40b3-ac9b-f186e8880c51-j40",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 4500,
+      "altura": 2768,
+      "url_imagem": "https://content.herthabsc.com/site/binaries/_bsc_1793782472199/content/gallery/news/rin-ins-wohnzimmer-bscwob-1.jpg",
+      "pagina": "https://www.herthabsc.com/de/nachrichten/2026/11/rin-ins-wohnzimmer-bscwob-2627",
+      "credito": "Hertha BSC",
+      "rotulo": "Olympiastadion - Hertha x Wolfsburg",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 4500,
+      "altura": 2964,
+      "url_imagem": "https://content.herthabsc.com/site/binaries/_bsc_1792582803853/content/gallery/diverse/citypress_bscsgf-olympiastadion-2627.jpg",
+      "pagina": "https://www.herthabsc.com/de/nachrichten/2026/10/rin-ins-wohnzimmer-bscdsc-2627",
+      "credito": "Hertha BSC",
+      "rotulo": "Olympiastadion - Hertha x Bielefeld",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "3.jpg",
+      "largura": 4500,
+      "altura": 2700,
+      "url_imagem": "https://content.herthabsc.com/site/binaries/_bsc_1788352317643/content/gallery/infrastruktur/olympiastadion/citypress_olympiastadion-bscfch-2627.jpg",
+      "pagina": "https://www.herthabsc.com/de/nachrichten/2026/09/rin-ins-wohnzimmer-bscfcm-2627",
+      "credito": "Hertha BSC",
+      "rotulo": "Olympiastadion - Hertha x Magdeburg",
+      "baixa_resolucao": false
+    }
+  ]
+}
