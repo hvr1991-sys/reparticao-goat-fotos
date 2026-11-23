@@ -10,7 +10,7 @@ Para cada pedido em jobs/<id>.json que ainda não tem fotos/<id>/meta.json:
 - Registra em fotos/<id>/meta.json a origem, o tamanho em pixels e qualquer erro.
 O designer confere cada foto (marca d'água, resolução) antes de usar.
 """
-import io, json, re, sys, urllib.parse, urllib.request
+import io, json, re, sys, time, urllib.parse, urllib.request
 from pathlib import Path
 
 from PIL import Image
@@ -22,14 +22,29 @@ MAX = 25 * 1024 * 1024
 SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 
-def get(url):
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "image/avif,image/webp,image/*,text/html;q=0.8,*/*;q=0.5"})
-    with urllib.request.urlopen(req, timeout=40) as r:
-        ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
-        data = r.read(MAX + 1)
-        if len(data) > MAX:
-            raise ValueError("arquivo maior que 25 MB")
-        return ctype, data, r.geturl()
+def get(url, tentativas=3):
+    headers = {
+        "User-Agent": UA,
+        "Accept": "image/avif,image/webp,image/*,text/html;q=0.9,*/*;q=0.5",
+        "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8,de;q=0.7",
+        "Referer": "https://www.google.com/",
+    }
+    ultimo = None
+    for i in range(tentativas):
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=60) as r:
+                ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+                data = r.read(MAX + 1)
+                if len(data) > MAX:
+                    raise ValueError("arquivo maior que 25 MB")
+                return ctype, data, r.geturl()
+        except ValueError:
+            raise
+        except Exception as e:  # tempo esgotado, conexão recusada etc.
+            ultimo = e
+            time.sleep(3 * (i + 1))
+    raise ultimo
 
 
 def og_image(html, base):
