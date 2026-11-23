@@ -72,7 +72,10 @@ def arte(job, token):
     out = ROOT / "arts" / (f"{card}.png" if n == 1 else f"{card}-{n}.png")
     tmp = Path("/tmp") / f"spec-{job['id']}.json"
     tmp.write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
-    r = subprocess.run([sys.executable, str(ROOT / "kit" / "render.py"), str(tmp), str(out)], capture_output=True, text=True)
+    env = {**os.environ}
+    if p.get("edicao_gestor"):
+        env["RG_SEM_CONFERENCIA"] = "1"  # edição direta do Gestor no painel: a decisão é dele
+    r = subprocess.run([sys.executable, str(ROOT / "kit" / "render.py"), str(tmp), str(out)], capture_output=True, text=True, env=env)
     if r.returncode != 0 or not out.exists():
         return "erro", {"erro": (r.stderr or r.stdout)[-800:]}
     req = urllib.request.Request(f"{UPLOAD}?card={card}&n={n}", data=out.read_bytes(), method="POST",
@@ -117,6 +120,35 @@ def modelo(job):
     return "feito", {"arquivo": f"modelos/{tipo}/{nome}"}
 
 
+PASTA_TIPO = {"agenda": "agenda-do-dia", "jogo_unico": "jogo-unico", "manchete": "manchete", "chamada": "chamada", "estatisticas": "estatisticas"}
+
+
+def referencia(job):
+    """Arte marcada com ⭐ pelo Gestor vira modelo oficial: imagem + spec + nota em modelos/<tipo>/."""
+    p = job.get("payload") or {}
+    card = str(job.get("card_id") or "")
+    if not UUID.match(card):
+        return "erro", {"erro": "card inválido"}
+    spec = p.get("spec") or {}
+    pasta = ROOT / "modelos" / PASTA_TIPO.get(spec.get("tipo"), "outros")
+    pasta.mkdir(parents=True, exist_ok=True)
+    src = ROOT / "arts" / f"{card}.png"
+    url = p.get("url")
+    dest = pasta / f"REFERENCIA-{card[:8]}.png"
+    if src.exists():
+        dest.write_bytes(src.read_bytes())
+    elif url and str(url).startswith("https://llmigqclpddpzcvpeufi.supabase.co/"):
+        with urllib.request.urlopen(url, timeout=60) as r:
+            dest.write_bytes(r.read())
+    else:
+        return "erro", {"erro": "arte não encontrada"}
+    (pasta / f"REFERENCIA-{card[:8]}.json").write_text(json.dumps(spec, ensure_ascii=False, indent=1), encoding="utf-8")
+    (pasta / f"REFERENCIA-{card[:8]}.txt").write_text(
+        f"⭐ REFERÊNCIA DO GESTOR — {p.get('titulo','')}. Copie este padrão (texto curto, posição, foto, linha do jogo). O spec exato está no .json ao lado.",
+        encoding="utf-8")
+    return "feito", {"modelo": str(dest.relative_to(ROOT))}
+
+
 def processar(jobs):
     token = oidc()
     res = []
@@ -124,6 +156,8 @@ def processar(jobs):
         try:
             if job["kind"] == "modelo":
                 status, result = modelo(job)
+            elif job["kind"] == "referencia":
+                status, result = referencia(job)
             else:
                 if not UUID.match(str(job.get("card_id", ""))):
                     raise ValueError("card_id inválido")

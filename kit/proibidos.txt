@@ -1,0 +1,5 @@
+# Termos proibidos pelo Gestor (um por linha). A arte com qualquer um deles é barrada.
+nanico
+nanica
+tigre
+tigrão

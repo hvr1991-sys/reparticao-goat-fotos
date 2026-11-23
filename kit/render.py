@@ -12,7 +12,7 @@ GOAT_SPORTS_EDITORIAL antes de entrar na arte e não são redesenhadas.
 
 Tipos: agenda, jogo_unico, manchete, chamada, estatisticas.
 """
-import base64, html, io, json, os, sys
+import base64, html, io, json, os, re, sys
 from pathlib import Path
 
 KIT = Path(__file__).resolve().parent
@@ -255,7 +255,7 @@ def _post(spec, meio=""):
     sobre = f'<div style="font:600 30px/1 \'GOAT Sans\';letter-spacing:.2em;color:{Y};text-transform:uppercase;white-space:nowrap;margin-bottom:18px">{esc(spec.get("sobretitulo",""))}</div>' if spec.get("sobretitulo") else ""
     size = spec.get("tamanho_titulo", 122)
     titulo = f'<div class="fit" style="font:700 {size}px/.95 \'GOAT Sans\';text-transform:uppercase">{_titulo_duas_cores(spec["titulo"])}</div>'
-    apoio = f'<div style="font:500 36px/1.2 \'GOAT Sans\';color:rgba(245,245,242,.9);margin-top:20px;max-width:900px">{spec_apoio(spec)}</div>' if spec.get("apoio") else ""
+    apoio = f'<div class="fit" style="font:500 38px/1.15 \'GOAT Sans\';color:rgba(245,245,242,.92);margin-top:16px;white-space:nowrap">{spec_apoio(spec)}</div>' if spec.get("apoio") else ""
     jogo = f'<div style="margin-top:22px;padding-top:18px;border-top:2px solid rgba(255,211,24,.55)">{_linha_jogo(j)}</div>' if j else ""
     largura = "max-width:960px" if al == "center" else "width:900px"
     lado = {"center": "left:0;right:0;text-align:center", "left": "left:60px;text-align:left", "right": "right:60px;text-align:right"}[al]
@@ -296,6 +296,63 @@ def estatisticas(spec):
     return _post(s2, meio)
 
 
+# ---------- conferência automática (regras do Gestor) ----------
+def _proibidos():
+    f = KIT / "proibidos.txt"
+    if not f.exists():
+        return []
+    return [l.strip().lower() for l in f.read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")]
+
+
+def _textos(spec):
+    out = []
+    def walk(v):
+        if isinstance(v, str):
+            if not re.search(r"\.(png|jpe?g|webp)$|^/|^fotos/|^https?:", v):
+                out.append(v)
+        elif isinstance(v, list):
+            for x in v:
+                walk(x)
+        elif isinstance(v, dict):
+            for k, x in v.items():
+                if k not in ("foto", "fundo", "foco", "tipo", "marca"):
+                    walk(x)
+    walk(spec)
+    return out
+
+
+def conferir(spec):
+    """Barra a arte que quebra uma regra fixa do Gestor. Devolve a lista de problemas (vazia = ok)."""
+    erros = []
+    tipo = spec.get("tipo")
+    if tipo in ("manchete", "chamada", "estatisticas"):
+        tl = spec.get("titulo", spec.get("pergunta", []))
+        tl = [tl] if isinstance(tl, str) else (tl or [])
+        if len(tl) > 2:
+            erros.append("título com mais de 2 linhas (use frase curta: 1 linha, no máximo 2 curtas)")
+        for l in tl:
+            t = l if isinstance(l, str) else str(l.get("texto", ""))
+            if len(t) > 22:
+                erros.append(f'linha do título longa demais ({len(t)} letras, máx. 22): "{t}"')
+        if len(str(spec.get("apoio", ""))) > 70:
+            erros.append("subtítulo/apoio passa de 70 caracteres (tem que caber em 1 linha)")
+        if len(str(spec.get("sobretitulo", ""))) > 30:
+            erros.append("sobretítulo longo demais (máx. 30)")
+        tem_jogo = bool(spec.get("jogo")) or bool(spec.get("confronto"))
+        if not tem_jogo:
+            erros.append('faltou a linha do jogo no rodapé (campo "jogo": campeonato, confronto, data, hora)')
+    if tipo == "agenda":
+        for j in spec.get("jogos") or []:
+            programa = " X " not in str(j.get("confronto", "")).upper()
+            if not programa and not j.get("foto"):
+                erros.append(f'card da agenda sem foto: {j.get("confronto")} (todo jogo leva foto)')
+    texto = " ".join(_textos(spec)).lower()
+    for termo in _proibidos():
+        if re.search(r"(?<![a-zà-ú])" + re.escape(termo) + r"(?![a-zà-ú])", texto):
+            erros.append(f'termo proibido pelo Gestor: "{termo}"')
+    return erros
+
+
 TIPOS = {"agenda": agenda, "jogo_unico": jogo_unico, "manchete": manchete, "chamada": chamada, "estatisticas": estatisticas}
 
 
@@ -311,6 +368,10 @@ def render(spec, out_path):
         spec = {**spec, "tipo": "jogo_unico", "foto": foto, "foco": j.get("foco", "50% 30%"),
                 "campeonato": j.get("rotulo", ""), "horario": j.get("horario", ""), "confronto": j.get("confronto", "")}
         tipo = "jogo_unico"
+    if not os.environ.get("RG_SEM_CONFERENCIA"):
+        erros = conferir(spec)
+        if erros:
+            raise SystemExit("CONFERÊNCIA AUTOMÁTICA REPROVOU A ARTE: " + " | ".join(erros))
     if tipo not in TIPOS:
         raise SystemExit(f"tipo inválido: {tipo}. Use: {', '.join(TIPOS)}")
     doc = TIPOS[tipo](spec)
