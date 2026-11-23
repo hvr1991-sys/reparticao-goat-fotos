@@ -1,12 +1,14 @@
 name: Processar pedidos da Repartição
 
 # A rodada agendada grava pedidos (fotos e artes) na fila rg_jobs do Supabase.
-# Este robô olha a fila a cada 5 minutos, baixa as fotos, monta as artes com o kit
-# e envia ao painel. Autenticação por token OIDC do GitHub: nenhum segredo guardado.
+# Este robô fica de plantão ~50 min por execução, olhando a fila a cada 30 s:
+# baixa as fotos, monta as artes com o kit e envia ao painel.
+# O agendamento abaixo garante que sempre haja um plantão ativo (só um por vez).
+# Autenticação por token OIDC do GitHub: nenhum segredo guardado.
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -18,51 +20,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  processar:
+  plantao:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 58
     steps:
-      - name: Ver fila
-        id: fila
-        env:
-          JOBS: https://llmigqclpddpzcvpeufi.supabase.co/functions/v1/rg-jobs
-        run: |
-          set -euo pipefail
-          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=reparticao-goat" | jq -r .value)
-          curl -sS -f -H "Authorization: Bearer $TOKEN" "$JOBS" -o /tmp/jobs.json
-          N=$(jq length /tmp/jobs.json)
-          echo "pedidos: $N"
-          echo "n=$N" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
-        if: steps.fila.outputs.n != '0'
       - uses: actions/setup-python@v5
-        if: steps.fila.outputs.n != '0'
         with:
           python-version: "3.12"
-      - name: Instalar
-        if: steps.fila.outputs.n != '0'
-        # o runner já tem o Google Chrome; o kit e o robô usam ele (sem baixar outro navegador)
-        run: pip install pillow==11.1.0 numpy playwright==1.49.1
-      - name: Processar
-        if: steps.fila.outputs.n != '0'
-        run: python tools/processar.py /tmp/jobs.json
-      - name: Salvar no repositório
-        if: steps.fila.outputs.n != '0'
+      # o runner já tem o Google Chrome; o kit e o robô usam ele (sem baixar outro navegador)
+      - run: pip install pillow==11.1.0 numpy playwright==1.49.1
+      - name: Plantão
         run: |
           git config user.name "reparticao-goat-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add fotos arts jobs
-          if ! git diff --cached --quiet; then
-            git commit -m "pedidos processados"
-            ok=0; for i in 1 2 3; do git pull --rebase && git push && ok=1 && break; sleep 5; done
-            [ $ok = 1 ] || exit 1
-          fi
-      - name: Informar resultados
-        if: always() && steps.fila.outputs.n != '0'
-        env:
-          JOBS: https://llmigqclpddpzcvpeufi.supabase.co/functions/v1/rg-jobs
-        run: |
-          set -euo pipefail
-          [ -f /tmp/resultados.json ] || exit 0
-          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=reparticao-goat" | jq -r .value)
-          curl -sS -f -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" --data-binary @/tmp/resultados.json "$JOBS"
+          python tools/processar.py 50

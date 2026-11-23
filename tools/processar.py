@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Processa a fila de pedidos da Repartição GOAT (roda no GitHub Actions).
 
-A rodada agendada grava pedidos na tabela rg_jobs do Supabase; este script recebe a lista
-(já buscada pelo workflow) e faz:
+A rodada agendada grava pedidos na tabela rg_jobs do Supabase; este script busca a fila
+(função rg-jobs, com token OIDC do GitHub) e faz:
 
 - kind "fotos": payload {"fotos": [{url, credito, rotulo}, ...]}
   Baixa com tools/baixar.py para fotos/<card>-j<id>/ (meta.json com origem e tamanho).
@@ -10,10 +10,10 @@ A rodada agendada grava pedidos na tabela rg_jobs do Supabase; este script receb
   Caminhos de foto no spec são relativos ao repositório (ex.: "fotos/<pasta>/1.png").
   Monta a arte em arts/<card>-<n>.png e envia ao painel (rg-arte-upload).
 
-Grava os resultados em /tmp/resultados.json; o workflow só os informa ao Supabase
-depois do git push, para a rodada já encontrar os arquivos no repositório.
+Fica de plantão por ~50 minutos olhando a fila a cada 30 s. Os resultados só são
+informados ao Supabase depois do git push, para a rodada já achar os arquivos aqui.
 """
-import json, os, re, subprocess, sys, urllib.request
+import json, os, re, subprocess, sys, time, urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -85,8 +85,18 @@ def arte(job, token):
     return "feito", {"arquivo": str(out.relative_to(ROOT)), "art_path": up.get("path")}
 
 
-def main():
-    jobs = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+JOBS_URL = "https://llmigqclpddpzcvpeufi.supabase.co/functions/v1/rg-jobs"
+
+
+def chamar(method, body=None):
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(JOBS_URL, data=data, method=method,
+                                 headers={"Authorization": "Bearer " + oidc(), "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return json.load(r)
+
+
+def processar(jobs):
     token = oidc()
     res = []
     for job in jobs:
@@ -96,10 +106,48 @@ def main():
             status, result = fotos(job) if job["kind"] == "fotos" else arte(job, token)
         except Exception as e:
             status, result = "erro", {"erro": str(e)[:500]}
-        print(job["id"], job["kind"], status)
+        print(job["id"], job["kind"], status, flush=True)
         res.append({"id": job["id"], "status": status, "result": result})
-    Path("/tmp/resultados.json").write_text(json.dumps(res, ensure_ascii=False), encoding="utf-8")
+    return res
+
+
+def salvar_no_repo():
+    run = lambda *a: subprocess.run(list(a), cwd=ROOT, check=False)
+    run("git", "add", "fotos", "arts", "jobs")
+    if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT).returncode == 0:
+        return True
+    run("git", "commit", "-q", "-m", "pedidos processados")
+    for _ in range(3):
+        if subprocess.run(["git", "pull", "--rebase", "-q"], cwd=ROOT).returncode == 0 and \
+           subprocess.run(["git", "push", "-q"], cwd=ROOT).returncode == 0:
+            return True
+        time.sleep(5)
+    return False
+
+
+def vigiar(minutos):
+    """Fica de plantão: olha a fila a cada 30 s e processa o que chegar."""
+    fim = time.time() + minutos * 60
+    while time.time() < fim:
+        try:
+            jobs = chamar("GET")
+        except Exception as e:
+            print("fila indisponível:", e, flush=True)
+            jobs = []
+        if jobs:
+            res = processar(jobs)
+            ok = salvar_no_repo()
+            if not ok:
+                for r in res:
+                    if r["status"] == "feito":
+                        r["status"], r["result"] = "erro", {"erro": "falha ao salvar no repositório", **(r["result"] or {})}
+            try:
+                chamar("POST", res)
+            except Exception as e:
+                print("falha ao informar resultados:", e, flush=True)
+            continue
+        time.sleep(30)
 
 
 if __name__ == "__main__":
-    main()
+    vigiar(float(sys.argv[1]) if len(sys.argv) > 1 else 50)
