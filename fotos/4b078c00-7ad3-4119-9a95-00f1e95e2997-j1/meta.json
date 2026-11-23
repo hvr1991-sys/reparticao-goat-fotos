@@ -1,0 +1,16 @@
+{
+  "id": "4b078c00-7ad3-4119-9a95-00f1e95e2997-j1",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1200,
+      "altura": 630,
+      "url_imagem": "https://imgproxy.neusta-sports.de/r2LsmEpKdibntU-bpkL61X32d_J07y9AEnl5f7fxROw/sh:1/q:90/g:fp:0.495:0.405/rt:fill/el:1/w:1200/h:630/aHR0cHM6Ly93d3cuc2NmcmVpYnVyZy5jb20vZmlsZWFkbWluLzAxX0NvbnRlbnQvMDFfQmlsZGVyLzA3X05ld3MvMDJfUHJvZmlzLzIwMjZfMjcvTmFjaGJlcmljaHRlLzIwMjYxMTIxX1NwaWVsYmVyaWNodF9FbHZlcnNiZXJnLmpwZw",
+      "pagina": "https://www.scfreiburg.com/en/latest/first-team/match-reports/2026-27/matanovic-fires-freiburg-to-victory-in-elversberg/",
+      "credito": "SC Freiburg",
+      "rotulo": "teste da fila",
+      "baixa_resolucao": false
+    }
+  ]
+}
