@@ -96,14 +96,38 @@ def chamar(method, body=None):
         return json.load(r)
 
 
+MODELOS_BASE = "https://llmigqclpddpzcvpeufi.supabase.co/storage/v1/object/public/rg-modelos/"
+TIPOS = {"agenda-do-dia", "jogo-unico", "manchete", "chamada", "estatisticas", "carrossel", "story", "tarja-video", "outros"}
+
+
+def modelo(job):
+    """Copia um modelo enviado pelo CEO (Supabase) para modelos/<tipo>/ no repositório."""
+    p = job.get("payload") or {}
+    tipo, path, nota = p.get("tipo"), str(p.get("path") or ""), p.get("nota")
+    if tipo not in TIPOS or not re.match(r"^modelos/[A-Za-z0-9._-]+$", path):
+        return "erro", {"erro": "tipo ou arquivo inválido"}
+    with urllib.request.urlopen(MODELOS_BASE + path, timeout=60) as r:
+        data = r.read()
+    nome = path.split("/", 1)[1]
+    dest = ROOT / "modelos" / tipo
+    dest.mkdir(parents=True, exist_ok=True)
+    (dest / nome).write_bytes(data)
+    if nota:
+        (dest / (nome.rsplit(".", 1)[0] + ".txt")).write_text(str(nota) + "\n", encoding="utf-8")
+    return "feito", {"arquivo": f"modelos/{tipo}/{nome}"}
+
+
 def processar(jobs):
     token = oidc()
     res = []
     for job in jobs:
         try:
-            if not UUID.match(str(job.get("card_id", ""))):
-                raise ValueError("card_id inválido")
-            status, result = fotos(job) if job["kind"] == "fotos" else arte(job, token)
+            if job["kind"] == "modelo":
+                status, result = modelo(job)
+            else:
+                if not UUID.match(str(job.get("card_id", ""))):
+                    raise ValueError("card_id inválido")
+                status, result = fotos(job) if job["kind"] == "fotos" else arte(job, token)
         except Exception as e:
             status, result = "erro", {"erro": str(e)[:500]}
         print(job["id"], job["kind"], status, flush=True)
@@ -113,7 +137,7 @@ def processar(jobs):
 
 def salvar_no_repo():
     run = lambda *a: subprocess.run(list(a), cwd=ROOT, check=False)
-    run("git", "add", "fotos", "arts", "jobs")
+    run("git", "add", "fotos", "arts", "jobs", "modelos")
     if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT).returncode == 0:
         return True
     run("git", "commit", "-q", "-m", "pedidos processados")
