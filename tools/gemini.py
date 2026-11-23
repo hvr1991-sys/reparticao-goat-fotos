@@ -213,5 +213,10 @@ def produzir(card, docs, baixar_fotos, montar, informar):
                   "designer": designer, "task": "Erro na arte", "log": f"Erro na arte (Gemini): {card['title']}"})
     except Exception as e:
         print("gemini erro", cid, e, flush=True)
+        if "HTTP 402" in str(e) or "HTTP 429" in str(e):
+            # sem crédito/limite no Google: não mexe no card, só avisa no livro de ponto
+            informar({"id": cid, "designer": designer, "task": "Aguardando crédito do Gemini",
+                      "log": "Designer Gemini parado: a chave do Google AI Studio está sem crédito ou no limite (HTTP 402/429). Tento de novo em 40 min."})
+            return
         informar({"id": cid, "note": ((card.get("note") or "") + f" · Designer Gemini falhou: {str(e)[:200]}").strip(" ·"), "designer": designer, "task": "Erro na arte",
                   "log": f"Designer Gemini falhou em {card['title']}: {str(e)[:150]}"})
