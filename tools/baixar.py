@@ -74,9 +74,22 @@ def via_navegador(url):
         ctype = (resp.headers.get("content-type", "") if resp else "").split(";")[0].lower()
         if ctype.startswith("image/"):
             return ctype, resp.body(), url
-        img = og_image(page.content(), page.url)
+        try:
+            page.wait_for_load_state("networkidle", timeout=20000)
+        except Exception:
+            pass
+        img = page.evaluate("""() => {
+          const m = document.querySelector('meta[property="og:image"],meta[property="og:image:secure_url"],meta[name="twitter:image"]');
+          if (m && m.content) return new URL(m.content, location.href).href;
+          let best = null, area = 0;
+          for (const i of document.images) {
+            const a = (i.naturalWidth || 0) * (i.naturalHeight || 0);
+            if (i.naturalWidth >= 800 && a > area) { area = a; best = i.currentSrc || i.src; }
+          }
+          return best;
+        }""")
         if not img:
-            raise ValueError("página sem imagem principal (og:image)")
+            raise ValueError(f"página sem imagem principal (título: {page.title()[:80]})")
         r = ctx.request.get(img, headers={"Referer": page.url}, timeout=60000)
         if not r.ok:
             raise ValueError(f"imagem respondeu HTTP {r.status}")
