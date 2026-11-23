@@ -1,0 +1,27 @@
+{
+  "id": "b3f18912-cfa9-4c80-9ca3-1c9d3aa0a11d-j30",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/xdgbiutrbwjjhljwyw2r",
+      "pagina": "https://www.spl.com.sa/en/news/title-duels-derbies-debutants-10-matches-to-watch-in-early-rsl",
+      "credito": "Saudi Pro League",
+      "rotulo": "RSL estreantes",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_q-good/prd/assets/site%20image/Slide_16_9_-_1_clou9h.jpg",
+      "pagina": "https://www.spl.com.sa/en/match/d33162b59b504a6bb6f60f9ec2989b86/diriyah-vs-al-ahli",
+      "credito": "Saudi Pro League",
+      "rotulo": "Diriyah x Al Ahli",
+      "baixa_resolucao": false
+    }
+  ]
+}
