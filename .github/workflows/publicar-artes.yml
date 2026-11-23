@@ -1,0 +1,55 @@
+name: Publicar artes no painel
+
+# O designer grava as artes prontas em arts/<id-do-card>.png (ou arts/<id-do-card>-<n>.png).
+# Este fluxo envia cada arte nova para o Supabase da Repartição GOAT.
+# Autenticação por token OIDC do próprio GitHub: nenhum segredo guardado no repositório.
+
+on:
+  push:
+    branches: [main]
+    paths: ["arts/**"]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publicar-artes
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Enviar artes novas
+        env:
+          ENDPOINT: https://llmigqclpddpzcvpeufi.supabase.co/functions/v1/rg-arte-upload
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if git cat-file -e "$BEFORE" 2>/dev/null; then
+            FILES=$(git diff --name-only --diff-filter=AM "$BEFORE" "$GITHUB_SHA" -- arts/ || true)
+          else
+            FILES=$(git ls-files arts/)
+          fi
+          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=reparticao-goat" | jq -r .value)
+          FAIL=0
+          for f in $FILES; do
+            name=$(basename "$f")
+            if [[ "$name" =~ ^([0-9a-f-]{36})(-([1-6]))?\.(png|jpg)$ ]]; then
+              card="${BASH_REMATCH[1]}"; n="${BASH_REMATCH[3]:-1}"; ext="${BASH_REMATCH[4]}"
+              ctype="image/png"; [ "$ext" = "jpg" ] && ctype="image/jpeg"
+              echo "Enviando $f (card $card, arte $n)"
+              code=$(curl -sS -o /tmp/resp.json -w "%{http_code}" -X POST "$ENDPOINT?card=$card&n=$n" \
+                -H "Authorization: Bearer $TOKEN" -H "Content-Type: $ctype" --data-binary "@$f")
+              cat /tmp/resp.json; echo
+              [ "$code" = "200" ] || FAIL=1
+            else
+              echo "Ignorado (nome fora do padrão): $f"
+            fi
+          done
+          exit $FAIL
