@@ -181,14 +181,14 @@ def jogo_unico(spec):
 {ilustrativo(spec)}
 <div style="position:absolute;top:56px;left:54px;font:700 40px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap">AGENDA <span style="font-weight:400">DO DIA</span></div>
 <div style="position:absolute;top:62px;right:24px;font:600 30px/1 'GOAT Sans';letter-spacing:.3em;color:rgba(245,245,242,.85);text-transform:uppercase;white-space:nowrap">{data_txt}</div>
-<div style="position:absolute;left:0;right:0;top:982px;text-align:center">
+<div style="position:absolute;left:0;right:0;top:{982 - int(spec.get('deslocar_y', 0) or 0)}px;text-align:center">
  <div id="bloco" style="display:inline-block;text-align:left;max-width:960px">
   <div style="font:500 28px/1 'GOAT Sans';letter-spacing:.3em;color:rgba(245,245,242,.82);text-transform:uppercase;white-space:nowrap;margin-bottom:22px">{esc(spec['campeonato'])}</div>
-  <div id="linha" style="font:600 136px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap;letter-spacing:-.01em"><span style="color:{Y}">{esc(spec['horario']).upper()}</span> <span style="font-weight:500;color:{WHITE}">|</span> {confronto(spec['confronto'])}</div>
+  <div id="linha" style="font:600 {int(spec.get('tamanho_titulo', 136) or 136)}px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap;letter-spacing:-.01em"><span style="color:{Y}">{esc(spec['horario']).upper()}</span> <span style="font-weight:500;color:{WHITE}">|</span> {confronto(spec['confronto'])}</div>
  </div>
 </div>
 <div style="position:absolute;top:1180px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 140)}</div>
-<script>document.fonts.ready.then(()=>{{const l=document.getElementById('linha');let s=136;while(l.scrollWidth>960&&s>44){{s-=2;l.style.fontSize=s+'px';}}}});</script>"""
+<script>document.fonts.ready.then(()=>{{const l=document.getElementById('linha');let s={int(spec.get('tamanho_titulo', 136) or 136)};while(l.scrollWidth>960&&s>44){{s-=2;l.style.fontSize=s+'px';}}}});</script>"""
     return page(body)
 
 def _alinhamento(spec):
@@ -261,7 +261,7 @@ def _post(spec, meio=""):
     lado = {"center": "left:0;right:0;text-align:center", "left": "left:60px;text-align:left", "right": "right:60px;text-align:right"}[al]
     body = f"""{bg}{ilustrativo(spec)}
 <div style="position:absolute;top:52px;{'left:0;right:0;display:flex;justify-content:center' if al=='center' else ('right:56px' if al=='left' else 'left:56px')}">{mark_tag(spec, 130)}</div>
-<div style="position:absolute;bottom:70px;{lado}">
+<div style="position:absolute;bottom:{70 + int(spec.get("deslocar_y", 0) or 0)}px;{lado}">
  <div style="display:inline-block;{largura};text-align:{al}">{sobre}{titulo}{apoio}{meio}{jogo}</div>
 </div>"""
     return page(body)
