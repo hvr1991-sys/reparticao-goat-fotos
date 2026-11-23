@@ -1,0 +1,21 @@
+{
+  "id": "010777c4-1957-45ec-95a5-f3c375c227ac-j34",
+  "fotos": [
+    {
+      "ok": false,
+      "pagina": "https://www.neom.com/en-us/neom-sports-club/news/Al-Hazem-hold-NEOM-S-C--to-a-draw-in-the-Roshn-Saudi-League",
+      "erro": "robô simples: HTTP Error 404: Not Found · navegador: imagem respondeu HTTP 404"
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/ayzsnff0uzct97birxjd",
+      "pagina": "https://www.spl.com.sa/news/al-hazem-seal-immediate-rsl-return",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Hazem acesso",
+      "baixa_resolucao": false
+    }
+  ]
+}

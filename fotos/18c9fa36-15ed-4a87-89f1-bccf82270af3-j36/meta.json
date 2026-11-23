@@ -1,0 +1,16 @@
+{
+  "id": "18c9fa36-15ed-4a87-89f1-bccf82270af3-j36",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://assets.bundesliga.com/matchteaser/DFL-COM-000001/DFL-SEA-0001KA/DFL-MAT-J043IO_prematch_en.png?fit=1200,630",
+      "pagina": "https://www.bundesliga.com/en/bundesliga/matchday/2026-2027/10/1-fc-union-berlin-vs-rb-leipzig",
+      "credito": "Bundesliga",
+      "rotulo": "Union x Leipzig R10",
+      "baixa_resolucao": false
+    }
+  ]
+}
