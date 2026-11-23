@@ -1,0 +1,27 @@
+{
+  "id": "ae52d691-ec6e-4ad6-acde-61d3e13e94ba-j65",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 3120,
+      "altura": 2080,
+      "url_imagem": "https://stcbfsiteprdimgbrs.blob.core.windows.net/img-site/cdn/2742_21616_ec216a4d0e.jpg",
+      "pagina": "https://www.cbf.com.br/futebol-brasileiro/noticias/campeonato-brasileiro/campeonato-brasileiro-serie-b/criciuma-abre-vantagem-no-playoff-da-serie-b-atletico-go-e-vila-nova-empatam",
+      "credito": "CBF",
+      "rotulo": "Atlético-GO x Vila Nova playoff ida",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 120,
+      "altura": 201,
+      "url_imagem": "https://atleticogoianiense.com.br/thumb/logos/logo_atletico_oficial_120.png",
+      "pagina": "https://atleticogoianiense.com.br/",
+      "credito": "Atlético Clube Goianiense",
+      "rotulo": "Atlético-GO home",
+      "baixa_resolucao": true
+    }
+  ]
+}
