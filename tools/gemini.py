@@ -10,7 +10,7 @@ Chamado pelo plantão (tools/processar.py). Para cada card em "producao" que pre
  4. A arte vai ao painel e o card segue para o pente fino (braço direito, no Claude).
 Nada é publicado em rede social. Chave: secret GEMINI_API_KEY do repositório.
 """
-import base64, json, os, re, urllib.request
+import base64, json, os, re, urllib.error, urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,35 +27,56 @@ def _req(path, body=None, timeout=180):
         return json.load(resp)
 
 
-def modelo():
-    """Usa GEMINI_MODEL se definido; senão o Flash mais novo disponível para a chave."""
+def modelos():
+    """GEMINI_MODEL (se definido) primeiro; depois os Flash disponíveis, do mais novo ao mais antigo."""
     global _modelo
-    if _modelo:
-        return _modelo
-    if os.environ.get("GEMINI_MODEL"):
-        _modelo = os.environ["GEMINI_MODEL"]
+    if _modelo is not None:
         return _modelo
     nomes = []
-    for m in _req("models?pageSize=200").get("models", []):
-        n = m["name"].split("/", 1)[1]
-        if "generateContent" in m.get("supportedGenerationMethods", []) and "flash" in n \
-                and not re.search(r"lite|image|tts|audio|live|thinking|exp|preview", n):
-            nomes.append(n)
-    def ver(n):
-        return [int(x) for x in re.findall(r"\d+", n)[:2]] or [0]
-    nomes.sort(key=ver, reverse=True)
-    _modelo = nomes[0] if nomes else "gemini-2.5-flash"
-    print("Gemini:", _modelo, flush=True)
+    try:
+        for m in _req("models?pageSize=200").get("models", []):
+            n = m["name"].split("/", 1)[1]
+            if "generateContent" in m.get("supportedGenerationMethods", []) and "flash" in n \
+                    and not re.search(r"image|tts|audio|live|thinking|exp", n):
+                nomes.append(n)
+    except Exception as e:
+        print("lista de modelos indisponível:", e, flush=True)
+    def chave(n):
+        v = [int(x) for x in re.findall(r"\d+", n)[:2]] or [0]
+        return (0 if "lite" in n else 1, 0 if "preview" in n else 1, v)
+    nomes.sort(key=chave, reverse=True)
+    if os.environ.get("GEMINI_MODEL"):
+        nomes.insert(0, os.environ["GEMINI_MODEL"])
+    _modelo = nomes or ["gemini-2.5-flash", "gemini-2.0-flash"]
+    print("Gemini, ordem de modelos:", _modelo[:6], flush=True)
     return _modelo
 
 
 def gerar(partes, busca=False, temp=0.6):
-    body = {"contents": [{"role": "user", "parts": partes}], "generationConfig": {"temperature": temp}}
-    if busca:
-        body["tools"] = [{"google_search": {}}]
-    out = _req(f"models/{modelo()}:generateContent", body)
-    cand = (out.get("candidates") or [{}])[0]
-    return "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))
+    """Tenta os modelos em ordem; se a busca do Google exigir cobrança, tenta sem busca."""
+    global _modelo
+    ultimo = None
+    for usar_busca in ([True, False] if busca else [False]):
+        for nome in list(modelos()):
+            body = {"contents": [{"role": "user", "parts": partes}], "generationConfig": {"temperature": temp}}
+            if usar_busca:
+                body["tools"] = [{"google_search": {}}]
+            try:
+                out = _req(f"models/{nome}:generateContent", body)
+            except urllib.error.HTTPError as e:
+                det = e.read().decode(errors="ignore")[:300]
+                ultimo = f"{nome}{' +busca' if usar_busca else ''}: HTTP {e.code} {det}"
+                print("Gemini recusou:", ultimo, flush=True)
+                if e.code in (400, 402, 403, 404, 429):
+                    continue
+                raise
+            cand = (out.get("candidates") or [{}])[0]
+            txt = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))
+            if txt:
+                if nome != _modelo[0]:
+                    _modelo = [nome] + [m for m in _modelo if m != nome]
+                return txt
+    raise RuntimeError(f"nenhum modelo do Gemini respondeu ({ultimo})")
 
 
 def json_de(txt):
@@ -158,7 +179,7 @@ def produzir(card, docs, baixar_fotos, montar, informar):
             uso_foto = any(v == "FOTO" for v in spec.values()) or any((j or {}).get("foto") == "FOTO" for j in spec.get("jogos", []) or [])
             if uso_foto and not escolhida:
                 if plano.get("foto_obrigatoria") or spec.get("tipo") in ("chamada", "jogo_unico"):
-                    informar({"id": cid, "brief": plano.get("brief", ""), "note": "Foto pendente: nenhuma foto oficial limpa encontrada (designer Gemini).",
+                    informar({"id": cid, "brief": plano.get("brief", ""), "note": ((card.get("note") or "") + " · Foto pendente: nenhuma foto oficial limpa encontrada (designer Gemini).").strip(" ·"),
                               "designer": designer, "task": "Foto pendente", "log": f"Foto pendente: {card['title']}"})
                     return
             for k in list(spec):
@@ -188,9 +209,9 @@ def produzir(card, docs, baixar_fotos, montar, informar):
                           "log": f"Arte pronta (Gemini) para o pente fino: {card['title']}"})
                 return
             fix = corrigir
-        informar({"id": cid, "note": f"Designer Gemini não conseguiu montar: {json.dumps(ultima, ensure_ascii=False)[:300]}",
+        informar({"id": cid, "note": (card.get("note") or "") + f" · Designer Gemini não conseguiu montar: {json.dumps(ultima, ensure_ascii=False)[:300]}",
                   "designer": designer, "task": "Erro na arte", "log": f"Erro na arte (Gemini): {card['title']}"})
     except Exception as e:
         print("gemini erro", cid, e, flush=True)
-        informar({"id": cid, "note": f"Designer Gemini falhou: {str(e)[:300]}", "designer": designer, "task": "Erro na arte",
+        informar({"id": cid, "note": ((card.get("note") or "") + f" · Designer Gemini falhou: {str(e)[:200]}").strip(" ·"), "designer": designer, "task": "Erro na arte",
                   "log": f"Designer Gemini falhou em {card['title']}: {str(e)[:150]}"})
