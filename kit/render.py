@@ -134,10 +134,10 @@ def agenda(spec):
     # informações da transmissão 50% maiores (pedido do Gestor); com muitos jogos, tudo encolhe junto para caber
     top_area, bottom_area = 320, H - 180  # entre a data e o logo
     gap = 20
-    k = min(1.0, ((bottom_area - top_area) - (n - 1) * gap) / (n * 186)) if n else 1.0
-    card_h = int(186 * k)
+    k = min(1.0, ((bottom_area - top_area) - (n - 1) * gap) / (n * 160)) if n else 1.0
+    card_h = int(160 * k)
     # horário no tamanho de sempre; rótulo e confronto maiores, com espaço para a foto à direita
-    f_hora, f_rot, f_tit = int(46 * max(k, .8)), int(28 * k), int(48 * k)
+    f_hora, f_rot, f_tit = int(46 * max(k, .8)), int(24 * k), int(41 * k)
     total = n * card_h + (n - 1) * gap
     y0 = top_area + max(0, ((bottom_area - top_area) - total) // 2)
     cards = []
