@@ -1,0 +1,21 @@
+{
+  "id": "b3f18912-cfa9-4c80-9ca3-1c9d3aa0a11d-j8",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/pztehjmjlhqtfu95j6jg",
+      "pagina": "https://www.spl.com.sa/en/news/1076405/bruno-lage-brings-title-winning-pedigree-to-ambitious-al-diriyah",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Diriyah - Bruno Lage",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": false,
+      "pagina": "https://www.thenationalnews.com/sport/football/2026/08/14/al-ahli-saudi-begin-post-jaissle-era-with-victory-in-saudi-pro-league-opener/",
+      "erro": "cannot identify image file <_io.BytesIO object at 0x7ce1a88a7d30>"
+    }
+  ]
+}
