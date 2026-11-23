@@ -1,0 +1,27 @@
+{
+  "id": "010777c4-1957-45ec-95a5-f3c375c227ac-j24",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/ayzsnff0uzct97birxjd",
+      "pagina": "https://www.spl.com.sa/en/news/750999/al-hazem-seal-immediate-rsl-return",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Hazem acesso",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/ynjrwjqhsjpnpxixzwxp",
+      "pagina": "https://www.spl.com.sa/news/introducing-the-2025-26-rsl-new-boys",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Hazem promovidos",
+      "baixa_resolucao": false
+    }
+  ]
+}

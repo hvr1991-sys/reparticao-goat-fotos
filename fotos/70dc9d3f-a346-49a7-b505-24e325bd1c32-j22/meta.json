@@ -1,0 +1,21 @@
+{
+  "id": "70dc9d3f-a346-49a7-b505-24e325bd1c32-j22",
+  "fotos": [
+    {
+      "ok": false,
+      "pagina": "https://www.diriyahclub.sa/en",
+      "erro": "robô simples: HTTP Error 404: Not Found · navegador: imagem respondeu HTTP 404"
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/ng7rugjc5vfjmcdvx2rk",
+      "pagina": "https://www.spl.com.sa/en/news/1079597/spl-announces-2026-27-rsl-fixture-schedule",
+      "credito": "Saudi Pro League",
+      "rotulo": "SPL 2026-27",
+      "baixa_resolucao": false
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "b3f18912-cfa9-4c80-9ca3-1c9d3aa0a11d-j23",
+  "fotos": [
+    {
+      "ok": false,
+      "pagina": "https://www.diriyahclub.sa/",
+      "erro": "robô simples: HTTP Error 404: Not Found · navegador: imagem respondeu HTTP 404"
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 5628,
+      "altura": 3752,
+      "url_imagem": "https://splonline.com.sa/media/4138/%D8%B5%D9%88%D8%B1%D8%A9-%D8%AA%D9%88%D9%82%D9%8A%D8%B9-%D8%A7%D9%84%D8%B4%D8%B1%D8%A7%D9%83%D8%A9-%D9%84%D8%B1%D8%A8%D8%B7%D9%87%D8%A7-%D9%85%D8%B9-%D8%A7%D9%84%D8%AE%D8%A8%D8%B1.jpeg",
+      "pagina": "https://splonline.com.sa/en/media-center/news/18082026/",
+      "credito": "SPL",
+      "rotulo": "Diriyah parceria",
+      "baixa_resolucao": false
+    }
+  ]
+}
