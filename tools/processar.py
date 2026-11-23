@@ -168,6 +168,7 @@ def fontes_privadas():
 
 def designers_gemini():
     """Designers no Gemini: produz as artes dos cards em produção (se houver GEMINI_API_KEY)."""
+    # Gemini pausado pelo Gestor: para religar, devolva GEMINI_API_KEY ao passo "Plantão" do workflow.
     if not os.environ.get("GEMINI_API_KEY"):
         return False
     sys.path.insert(0, str(ROOT / "tools"))
