@@ -57,17 +57,54 @@ def og_image(html, base):
     return None
 
 
+_browser = None
+
+
+def via_navegador(url):
+    """Segunda tentativa: abre a página num Chrome de verdade (sites que barram robôs simples)."""
+    global _browser
+    from playwright.sync_api import sync_playwright
+    if _browser is None:
+        pw = sync_playwright().start()
+        _browser = pw.chromium.launch(args=["--no-sandbox"])
+    ctx = _browser.new_context(user_agent=UA, locale="pt-BR", viewport={"width": 1366, "height": 900})
+    try:
+        page = ctx.new_page()
+        resp = page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        ctype = (resp.headers.get("content-type", "") if resp else "").split(";")[0].lower()
+        if ctype.startswith("image/"):
+            return ctype, resp.body(), url
+        img = og_image(page.content(), page.url)
+        if not img:
+            raise ValueError("página sem imagem principal (og:image)")
+        r = ctx.request.get(img, headers={"Referer": page.url}, timeout=60000)
+        if not r.ok:
+            raise ValueError(f"imagem respondeu HTTP {r.status}")
+        body = r.body()
+        if len(body) > MAX:
+            raise ValueError("arquivo maior que 25 MB")
+        return (r.headers.get("content-type", "") or "").split(";")[0].lower(), body, img
+    finally:
+        ctx.close()
+
+
 def baixar(item, dest, n):
     url = item.get("url", "")
     if not url.startswith(("http://", "https://")):
         raise ValueError("URL inválida")
-    ctype, data, final = get(url)
-    origem = final
-    if ctype.startswith("text/html"):
-        img = og_image(data.decode("utf-8", "ignore"), final)
-        if not img:
-            raise ValueError("página sem imagem principal (og:image)")
-        ctype, data, origem = get(img)
+    try:
+        ctype, data, final = get(url)
+        origem = final
+        if ctype.startswith("text/html"):
+            img = og_image(data.decode("utf-8", "ignore"), final)
+            if not img:
+                raise ValueError("página sem imagem principal (og:image)")
+            ctype, data, origem = get(img)
+    except Exception as e1:
+        try:
+            ctype, data, origem = via_navegador(url)
+        except Exception as e2:
+            raise ValueError(f"robô simples: {e1} · navegador: {e2}")
     im = Image.open(io.BytesIO(data))
     im.load()
     fmt = (im.format or "").upper()
