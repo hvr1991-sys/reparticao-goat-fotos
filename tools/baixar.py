@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Robô de fotos da Repartição GOAT (roda no GitHub Actions).
 
+Fontes aceitas: site oficial / sala de imprensa do clube ou da liga e posts PÚBLICOS dos perfis
+oficiais (Instagram, Facebook, X). Só o que é aberto ao público: nunca faz login nem contorna bloqueio.
+
 Para cada pedido em jobs/<id>.json que ainda não tem fotos/<id>/meta.json:
   {"id": "<card>", "fotos": [{"url": "<imagem ou página do clube>", "credito": "...", "rotulo": "..."}]}
 
@@ -101,10 +104,35 @@ def via_navegador(url):
         ctx.close()
 
 
+INSTA = re.compile(r"^https?://(www\.)?instagram\.com/(?:[A-Za-z0-9_.]+/)?(p|reel)/([A-Za-z0-9_-]+)")
+
+
+def via_instagram_embed(url):
+    """Post público do Instagram: usa a página de incorporação oficial (/embed/), que é aberta ao público.
+    Se o post não for público ou pedir login, desiste — nunca contorna login."""
+    m = INSTA.match(url)
+    if not m:
+        raise ValueError("não é post do Instagram")
+    embed = f"https://www.instagram.com/{m.group(2)}/{m.group(3)}/embed/captioned/"
+    ctype, data, final = get(embed)
+    html = data.decode("utf-8", "ignore")
+    if "login" in final:
+        raise ValueError("Instagram pediu login (post não público)")
+    cand = re.findall(r'class="EmbeddedMediaImage"[^>]*src="([^"]+)"', html) or re.findall(r'<img[^>]+src="(https://[^"]*(?:cdninstagram|fbcdn)[^"]+)"', html)
+    if not cand:
+        raise ValueError("Instagram não mostrou a imagem sem login")
+    img = cand[0].replace("&amp;", "&")
+    ctype, data, origem = get(img)
+    return ctype, data, origem
+
+
 def baixar(item, dest, n):
     url = item.get("url", "")
     if not url.startswith(("http://", "https://")):
         raise ValueError("URL inválida")
+    if INSTA.match(url):
+        ctype, data, origem = via_instagram_embed(url)
+        return salvar(item, url, dest, n, ctype, data, origem)
     try:
         ctype, data, final = get(url)
         origem = final
@@ -118,6 +146,10 @@ def baixar(item, dest, n):
             ctype, data, origem = via_navegador(url)
         except Exception as e2:
             raise ValueError(f"robô simples: {e1} · navegador: {e2}")
+    return salvar(item, url, dest, n, ctype, data, origem)
+
+
+def salvar(item, url, dest, n, ctype, data, origem):
     im = Image.open(io.BytesIO(data))
     im.load()
     fmt = (im.format or "").upper()
