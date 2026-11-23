@@ -1,0 +1,15 @@
+{
+  "id": "teste-robo-3",
+  "fotos": [
+    {
+      "ok": false,
+      "pagina": "https://sportrecife.com.br/futebol/sport-vence-goias-no-fechamento-da-serie-b-2026/",
+      "erro": "robô simples: HTTP Error 403: Forbidden · navegador: página sem imagem principal (og:image)"
+    },
+    {
+      "ok": false,
+      "pagina": "https://fcbayern.com/en/news/2026/11/reaction-to-bayern-v-koeln",
+      "erro": "robô simples: The read operation timed out · navegador: página sem imagem principal (og:image)"
+    }
+  ]
+}
