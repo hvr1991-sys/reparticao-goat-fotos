@@ -1,0 +1,38 @@
+{
+  "id": "3f774c60-f496-4850-b8d5-0bc994e50ca5-j94",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 340,
+      "altura": 191,
+      "url_imagem": "https://www.palmeiras.com.br/wp-content/uploads/2026/08/20082026_cg_palmeiras_4264_31-340x191.jpg",
+      "pagina": "https://www.palmeiras.com.br/?p=288960",
+      "credito": "Palmeiras",
+      "rotulo": "Palmeiras final 1",
+      "baixa_resolucao": true
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 340,
+      "altura": 191,
+      "url_imagem": "https://www.palmeiras.com.br/wp-content/uploads/2026/04/07042026_cg_palmeiras_8974_3-340x191.jpg",
+      "pagina": "https://www.palmeiras.com.br/?p=283664",
+      "credito": "Palmeiras",
+      "rotulo": "Palmeiras final 2",
+      "baixa_resolucao": true
+    },
+    {
+      "ok": true,
+      "arquivo": "3.png",
+      "largura": 340,
+      "altura": 191,
+      "url_imagem": "https://palmeiras.com.br/wp-content/uploads/2025/11/28112025_cg_palmeiras_3475_54-340x191.jpg",
+      "pagina": "https://www.palmeiras.com.br/?p=278462",
+      "credito": "Palmeiras",
+      "rotulo": "Palmeiras final 3",
+      "baixa_resolucao": true
+    }
+  ]
+}
