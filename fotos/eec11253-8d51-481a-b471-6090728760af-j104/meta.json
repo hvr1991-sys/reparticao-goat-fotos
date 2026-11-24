@@ -1,0 +1,27 @@
+{
+  "id": "eec11253-8d51-481a-b471-6090728760af-j104",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 340,
+      "altura": 191,
+      "url_imagem": "https://www.palmeiras.com.br/wp-content/uploads/2026/10/21102026_cg_palmeiras_destaque_7247_1-340x191.jpg",
+      "pagina": "https://www.palmeiras.com.br/noticias/palmeiras-elimina-fluminense-nos-penaltis-e-chega-a-final-da-libertadores-pela-oitava-vez/",
+      "credito": "Palmeiras",
+      "rotulo": "Palmeiras na final",
+      "baixa_resolucao": true
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 340,
+      "altura": 191,
+      "url_imagem": "https://www.palmeiras.com.br/wp-content/uploads/2026/10/14102026_cg_palmeiras_destaque_9850_25-340x191.jpg",
+      "pagina": "https://www.palmeiras.com.br/noticias/palmeiras-vence-fluminense-no-maracana-e-abre-vantagem-na-semifinal-da-libertadores/",
+      "credito": "Palmeiras",
+      "rotulo": "Palmeiras no Maracanã",
+      "baixa_resolucao": true
+    }
+  ]
+}

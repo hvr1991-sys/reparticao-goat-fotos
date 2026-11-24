@@ -1,0 +1,20 @@
+{
+  "id": "7df057d6-99cb-48f1-84bc-e53fece7ce5a-j103",
+  "fotos": [
+    {
+      "ok": false,
+      "pagina": "https://www.werder.de/en/news/first-team/2026-2027/match-report-paderborn-171026",
+      "erro": "robô simples: HTTP Error 429: Too Many Requests · navegador: página sem imagem principal (título: Vercel Security Checkpoint)"
+    },
+    {
+      "ok": false,
+      "pagina": "https://bundesliga.com/de/bundesliga/news/sv-werder-bremen-hamburger-sv-spieltag-10-spielbericht-highlights-40102",
+      "erro": "cannot identify image file <_io.BytesIO object at 0x785919c5b240>"
+    },
+    {
+      "ok": false,
+      "pagina": "https://www.bundesliga.com/en/bundesliga/news/werder-bremen-hoffenheim-match-report-highlights-matchday-8-fullkrug-39802",
+      "erro": "cannot identify image file <_io.BytesIO object at 0x7859197e7dd0>"
+    }
+  ]
+}

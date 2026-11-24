@@ -1,0 +1,71 @@
+{
+  "id": "ae52d691-ec6e-4ad6-acde-61d3e13e94ba-j102",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 1920,
+      "altura": 2403,
+      "url_imagem": "https://www.cbf.com.br/_next/image?url=https%3A%2F%2Fstcbfsiteprdimgbrs.blob.core.windows.net%2Fimg-site%2Fcdn%2FSnap_Insta_to_921125505_18649851391029656_2930077843639792244_n_786f639c22.jpg&w=1920&q=70",
+      "pagina": "https://www.cbf.com.br/futebol-brasileiro/jogos/campeonato-brasileiro/serie-b/2026/vila-nova-x-atletico-goianiense-saf/835479",
+      "credito": "CBF",
+      "rotulo": "Vila Nova x Atlético-GO volta",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 1280,
+      "altura": 853,
+      "url_imagem": "https://stcbfsiteprdimgbrs.blob.core.windows.net/img-site/cdn/vila_nova_40f7e56f23.jpg",
+      "pagina": "https://www.cbf.com.br/futebol-brasileiro/noticias/se/a/serie-b-vila-nova-lider-duela-com-o-ceara-em-terceiro-fora-de-casa",
+      "credito": "CBF",
+      "rotulo": "Vila Nova líder",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "3.jpg",
+      "largura": 1280,
+      "altura": 853,
+      "url_imagem": "https://stcbfsiteprdimgbrs.blob.core.windows.net/img-site/cdn/vila_nova_46d5e5a0e1.jpg",
+      "pagina": "https://www.cbf.com.br/futebol-brasileiro/noticias/campeonato-brasileiro-sub20/a/vila-nova-e-o-novo-lider-da-serie-b-apos-cinco-rodadas-seguido-pelo-fortaleza",
+      "credito": "CBF",
+      "rotulo": "Vila Nova novo líder",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "4.jpg",
+      "largura": 3000,
+      "altura": 2000,
+      "url_imagem": "https://stcbfsiteprdimgbrs.blob.core.windows.net/img-site/cdn/55596571047_5babcf9cf7_o_36abecdba9.jpg",
+      "pagina": "https://www.cbf.com.br/futebol-brasileiro/noticias/campeonato-brasileiro/campeonato-brasileiro-serie-b/serie-b-briga-acirrada-pelas-primeiras-posicoes-na-tabela-marcam-reta-final-da-primeira-fase",
+      "credito": "CBF",
+      "rotulo": "Série B reta final",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "5.jpg",
+      "largura": 1800,
+      "altura": 1200,
+      "url_imagem": "https://stcbfsiteprdimgbrs.blob.core.windows.net/img-site/cdn/IMG_8068.jpeg",
+      "pagina": "https://www.cbf.com.br/futebol-brasileiro/noticias/competicoes-campeonato-brasileiro-serie-b-imt/a/cbf-divulga-tabela-detalhada-dos-playoffs-de-acesso-da-serie-b",
+      "credito": "CBF",
+      "rotulo": "Playoffs Série B",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "6.jpg",
+      "largura": 2047,
+      "altura": 1365,
+      "url_imagem": "https://atleticogoianiense.com.br/thumb/52628425697_e771da372d_k.jpg",
+      "pagina": "https://atleticogoianiense.com.br/noticias.html",
+      "credito": "Atlético Clube Goianiense",
+      "rotulo": "Atlético-GO notícias",
+      "baixa_resolucao": false
+    }
+  ]
+}
