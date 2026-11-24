@@ -1,0 +1,43 @@
+{
+  "id": "66025979-8302-4571-9699-54ce277c39d6-j106",
+  "fotos": [
+    {
+      "ok": false,
+      "pagina": "https://alqadsiah.com/en/matches/al-qadsiah-vs-al-hazem-2026-05-14-1",
+      "erro": "cannot identify image file <_io.BytesIO object at 0x73e14fb31710>"
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 2400,
+      "altura": 2060,
+      "url_imagem": "https://storage.googleapis.com/alqadsiah-public-website/media/70acb3d4-533a-4cb4-a158-260cf2285613.jpg",
+      "pagina": "https://alqadsiah.com/en/posts/alkadsy-ybda-maaskr-gyrona-orodgrz-hdfna-bnaaa-kaaad-bdny-koy-llmosm",
+      "credito": "Al Qadsiah",
+      "rotulo": "Al Qadsiah pré-temporada",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "3.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/bdlyqle7cemivhzwpshr",
+      "pagina": "https://spl.com.sa/en/news/1064152/otavio-on-injury-torment-playing-for-portugal-rooting-for-al-nassr-title-win",
+      "credito": "Saudi Pro League",
+      "rotulo": "Otávio",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "4.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_q-good/prd/assets/site%20image/Slide_16_9_-_1_clou9h.jpg",
+      "pagina": "https://www.spl.com.sa/en/match/70cc19b1c64e4b9b83f4b139cad421de/qad-vs-itt/commentary",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Qadsiah x Al Ittihad",
+      "baixa_resolucao": false
+    }
+  ]
+}
