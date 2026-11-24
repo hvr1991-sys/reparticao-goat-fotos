@@ -356,8 +356,94 @@ def conferir(spec):
 TIPOS = {"agenda": agenda, "jogo_unico": jogo_unico, "manchete": manchete, "chamada": chamada, "estatisticas": estatisticas}
 
 
+# ---- fotos da equipe (apresentadores, comentaristas e repórteres) ----
+# No spec, a foto de um programa pode vir como "equipe:<Nome como na planilha>" (ou "equipe:<arquivo>").
+# As fotos ficam criptografadas em equipe/enc/ e o robô abre em equipe/private/ (fora do git).
+EQUIPE = KIT.parent / "equipe" / "private"
+
+
+def _slug(s):
+    import unicodedata
+    s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+
+
+def foto_equipe(valor):
+    import hashlib, random
+    ref = str(valor)[len("equipe:"):].strip()
+    if re.fullmatch(r"[0-9a-f]{16}-\d+\.jpg", ref):
+        cands = [EQUIPE / ref]
+        nome = ref
+    else:
+        nome, _, idx = ref.partition("#")
+        chave = hashlib.sha256(_slug(nome).encode()).hexdigest()[:16]
+        cands = sorted(EQUIPE.glob(f"{chave}-*.jpg"))
+        if idx.strip().isdigit():
+            cands = [c for c in cands if c.stem.endswith(f"-{idx.strip()}")] or cands
+    cands = [c for c in cands if c.exists()]
+    if cands:
+        return str(random.choice(cands))
+    if os.environ.get("RG_EXIGIR_EQUIPE"):
+        raise SystemExit(f"Sem foto da equipe para '{nome}'. Confira o nome no rodízio (rg_equipe_rodizio) ou suba a foto em Apresentadores.")
+    # prévia sem a chave (sessão dos agentes): marcador cinza no lugar da foto
+    from PIL import Image, ImageDraw
+    ph = Path("/tmp") / f"equipe-previa-{_slug(nome) or 'x'}.jpg"
+    if not ph.exists():
+        im = Image.new("RGB", (1200, 1500), (46, 46, 50))
+        d = ImageDraw.Draw(im)
+        d.ellipse((400, 260, 800, 660), fill=(70, 70, 76))
+        d.rounded_rectangle((260, 720, 940, 1500), 200, fill=(70, 70, 76))
+        im.save(ph, quality=90)
+    print(f"AVISO: prévia sem a foto real de '{nome}' (o robô coloca a foto na arte final).", file=sys.stderr)
+    return str(ph)
+
+
+def foco_rosto(path, caixa=(400, 160)):
+    """Enquadra o rosto do retrato no card da agenda (object-position). Sem OpenCV, usa o topo da foto."""
+    try:
+        import cv2
+        img = cv2.imread(str(path))
+        h, w = img.shape[:2]
+        cinza = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        det = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+        faces = det.detectMultiScale(cinza, 1.1, 6, minSize=(w // 12, w // 12))
+        if len(faces) == 0:
+            return "50% 14%"
+        x, y, fw, fh = max(faces, key=lambda f: f[2] * f[3])
+        cx, cy = (x + fw / 2) / w, (y + fh * 0.55) / h  # centro um pouco abaixo dos olhos (pega o sorriso)
+        bw, bh = caixa
+        esc_ = max(bw / w, bh / h)
+        sw, sh = w * esc_, h * esc_
+        py = 50 if sh <= bh else (cy * sh - bh / 2) / (sh - bh) * 100
+        px = 50 if sw <= bw else (cx * sw - bw / 2) / (sw - bw) * 100
+        return f"{min(100, max(0, px)):.0f}% {min(100, max(0, py)):.0f}%"
+    except Exception:
+        return "50% 14%"
+
+
+def resolver_equipe(spec):
+    def fix(v):
+        return foto_equipe(v) if isinstance(v, str) and v.startswith("equipe:") else v
+    spec = dict(spec)
+    for k in ("foto", "fundo"):
+        if spec.get(k):
+            spec[k] = fix(spec[k])
+    if spec.get("jogos"):
+        jogos = []
+        for j in spec["jogos"]:
+            f = j.get("foto")
+            if isinstance(f, str) and f.startswith("equipe:"):
+                # retrato da equipe: enquadra o rosto (cabeça inteira) por padrão
+                caminho = fix(f)
+                j = {"foco": foco_rosto(caminho), **j, "foto": caminho}
+            jogos.append(j)
+        spec["jogos"] = jogos
+    return spec
+
+
 def render(spec, out_path):
     from playwright.sync_api import sync_playwright
+    spec = resolver_equipe(spec)
     tipo = spec.get("tipo")
     if tipo == "agenda" and len(spec.get("jogos") or []) == 1:
         # regra do Gestor: dia com jogo único usa SEMPRE o modelo de jogo único

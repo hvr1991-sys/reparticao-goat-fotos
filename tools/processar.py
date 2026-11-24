@@ -13,7 +13,7 @@ A rodada agendada grava pedidos na tabela rg_jobs do Supabase; este script busca
 Fica de plantão por ~50 minutos olhando a fila a cada 30 s. Os resultados só são
 informados ao Supabase depois do git push, para a rodada já achar os arquivos aqui.
 """
-import json, os, re, subprocess, sys, time, urllib.request
+import io, json, os, re, subprocess, sys, time, urllib.parse, urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -47,6 +47,8 @@ def resolver(spec):
     base = (ROOT / "fotos").resolve()
 
     def fix(v):
+        if isinstance(v, str) and v.startswith("equipe:"):
+            return v  # foto da equipe: o kit/render.py resolve a partir de equipe/private/
         p = (ROOT / v).resolve()
         if base not in p.parents or not p.exists():
             raise ValueError(f"foto fora de fotos/ ou inexistente: {v}")
@@ -72,7 +74,7 @@ def arte(job, token):
     out = ROOT / "arts" / (f"{card}.png" if n == 1 else f"{card}-{n}.png")
     tmp = Path("/tmp") / f"spec-{job['id']}.json"
     tmp.write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
-    env = {**os.environ}
+    env = {**os.environ, "RG_EXIGIR_EQUIPE": "1"}
     if p.get("edicao_gestor"):
         env["RG_SEM_CONFERENCIA"] = "1"  # edição direta do Gestor no painel: a decisão é dele
     r = subprocess.run([sys.executable, str(ROOT / "kit" / "render.py"), str(tmp), str(out)], capture_output=True, text=True, env=env)
@@ -149,6 +151,82 @@ def referencia(job):
     return "feito", {"modelo": str(dest.relative_to(ROOT))}
 
 
+# ---- fotos da equipe: criptografadas em equipe/enc/ (repositório público), abertas em equipe/private/ ----
+EQUIPE_ENC = ROOT / "equipe" / "enc"
+EQUIPE_PRIV = ROOT / "equipe" / "private"
+_EQUIPE_KEY = {"v": None}
+
+
+def _chave_equipe():
+    if not _EQUIPE_KEY["v"]:
+        req = urllib.request.Request(JOBS_URL + "?acao=chave-equipe", headers={"Authorization": "Bearer " + oidc()})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            _EQUIPE_KEY["v"] = json.load(r).get("chave")
+    return _EQUIPE_KEY["v"]
+
+
+def _miniatura(arquivo):
+    from PIL import Image
+    im = Image.open(EQUIPE_PRIV / arquivo).convert("RGB")
+    im.thumbnail((360, 360))
+    buf = io.BytesIO()
+    im.save(buf, "JPEG", quality=82)
+    req = urllib.request.Request(f"{JOBS_URL}?acao=equipe-thumb&arquivo={arquivo}", data=buf.getvalue(), method="POST",
+                                 headers={"Authorization": "Bearer " + oidc(), "Content-Type": "image/jpeg"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        json.load(r)
+
+
+def equipe_privada():
+    """Abre as fotos da equipe e manda ao painel as miniaturas que faltam."""
+    try:
+        chave = _chave_equipe()
+        if not chave:
+            print("sem chave das fotos da equipe", flush=True)
+            return
+        EQUIPE_PRIV.mkdir(parents=True, exist_ok=True)
+        for enc in sorted(EQUIPE_ENC.glob("*.enc")):
+            out = EQUIPE_PRIV / enc.name[:-4]
+            if not out.exists():
+                subprocess.run(["openssl", "enc", "-d", "-aes-256-cbc", "-pbkdf2", "-in", str(enc), "-out", str(out), "-pass", "env:EQ_KEY"],
+                               check=True, env={**os.environ, "EQ_KEY": chave})
+        print("fotos da equipe prontas:", len(list(EQUIPE_PRIV.glob("*.jpg"))), flush=True)
+        req = urllib.request.Request(JOBS_URL + "?acao=equipe-pendentes", headers={"Authorization": "Bearer " + oidc()})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            pend = json.load(r)
+        for arq in pend:
+            if (EQUIPE_PRIV / arq).exists():
+                _miniatura(arq)
+    except Exception as e:
+        print("sem fotos da equipe:", e, flush=True)
+
+
+def equipe_nova(job):
+    """Foto enviada pelo painel: baixa do espaço privado, criptografa no repositório e gera a miniatura."""
+    from PIL import Image, ImageOps
+    p = job.get("payload") or {}
+    arquivo, path = str(p.get("arquivo", "")), str(p.get("path", ""))
+    if not re.fullmatch(r"[0-9a-f]{16}-\d+\.jpg", arquivo):
+        return "erro", {"erro": "arquivo inválido"}
+    req = urllib.request.Request(f"{JOBS_URL}?acao=equipe-url&path={urllib.parse.quote(path)}", headers={"Authorization": "Bearer " + oidc()})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        url = json.load(r).get("url")
+    if not url:
+        return "erro", {"erro": "foto não encontrada no espaço privado"}
+    with urllib.request.urlopen(url, timeout=120) as r:
+        raw = r.read()
+    im = ImageOps.exif_transpose(Image.open(io.BytesIO(raw))).convert("RGB")
+    im.thumbnail((1800, 1800))
+    EQUIPE_PRIV.mkdir(parents=True, exist_ok=True)
+    EQUIPE_ENC.mkdir(parents=True, exist_ok=True)
+    im.save(EQUIPE_PRIV / arquivo, "JPEG", quality=90)
+    subprocess.run(["openssl", "enc", "-aes-256-cbc", "-pbkdf2", "-salt", "-in", str(EQUIPE_PRIV / arquivo),
+                    "-out", str(EQUIPE_ENC / (arquivo + ".enc")), "-pass", "env:EQ_KEY"],
+                   check=True, env={**os.environ, "EQ_KEY": _chave_equipe()})
+    _miniatura(arquivo)
+    return "feito", {"arquivo": arquivo}
+
+
 def processar(jobs):
     token = oidc()
     res = []
@@ -156,6 +234,8 @@ def processar(jobs):
         try:
             if job["kind"] == "modelo":
                 status, result = modelo(job)
+            elif job["kind"] == "equipe":
+                status, result = equipe_nova(job)
             elif job["kind"] == "referencia":
                 status, result = referencia(job)
             else:
@@ -171,7 +251,7 @@ def processar(jobs):
 
 def salvar_no_repo():
     run = lambda *a: subprocess.run(list(a), cwd=ROOT, check=False)
-    run("git", "add", "fotos", "arts", "jobs", "modelos")
+    run("git", "add", "fotos", "arts", "jobs", "modelos", "equipe/enc")
     if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT).returncode == 0:
         return True
     run("git", "commit", "-q", "-m", "pedidos processados")
@@ -254,6 +334,7 @@ def vigiar(minutos):
     """Fica de plantão: olha a fila a cada 30 s e processa o que chegar."""
     fim = time.time() + minutos * 60
     fontes_privadas()
+    equipe_privada()
     proxima_producao = 0
     while time.time() < fim:
         try:

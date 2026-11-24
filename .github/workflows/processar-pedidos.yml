@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: "3.12"
       # o runner já tem o Google Chrome; o kit e o robô usam ele (sem baixar outro navegador)
-      - run: pip install pillow==11.1.0 numpy playwright==1.49.1
+      - run: pip install pillow==11.1.0 numpy playwright==1.49.1 "opencv-python-headless==4.10.0.84"
       - name: Plantão
         run: |
           git config user.name "reparticao-goat-bot"
