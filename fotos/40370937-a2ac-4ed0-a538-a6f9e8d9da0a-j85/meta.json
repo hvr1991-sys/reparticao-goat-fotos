@@ -1,0 +1,38 @@
+{
+  "id": "40370937-a2ac-4ed0-a538-a6f9e8d9da0a-j85",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 1200,
+      "altura": 630,
+      "url_imagem": "https://images.ctfassets.net/nurz7nsnha04/6xfjtvpPlQkUEuZptSkpjL/d1c081a57fb4d0a5ab556377cd66536c/20250123_HP_Elversberg.jpg?fm=jpg&w=1200&h=630&q=75&fit=fill&f=faces",
+      "pagina": "https://fc.de/aktuelles/news/die-sv-elversberg-im-gegnercheck",
+      "credito": "1. FC Köln",
+      "rotulo": "Köln x Elversberg gegnercheck",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 1200,
+      "altura": 630,
+      "url_imagem": "https://images.ctfassets.net/nurz7nsnha04/5MwqH4g2KzyZbzAhlsDlke/721870e8bc5cc5d2815b36c281547cba/261116_training-11_Kopie.jpg?fm=jpg&w=1200&h=630&q=75&fit=fill&f=faces",
+      "pagina": "https://fc.de/aktuelles/news/fc-woche-training-pk-elversberg",
+      "credito": "1. FC Köln",
+      "rotulo": "FC-Woche Elversberg",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "3.jpg",
+      "largura": 1200,
+      "altura": 630,
+      "url_imagem": "https://images.ctfassets.net/nurz7nsnha04/7nI6vQ6Z8LJbN1TZprcWN3/a47215fee2287739e142f67c7a9d0f2d/20261120_Spielbericht.jpg?fm=jpg&w=1200&h=630&q=75&fit=fill&f=faces",
+      "pagina": "https://fc.de/en/news/all-news/spoils-shared-in-munich",
+      "credito": "1. FC Köln",
+      "rotulo": "Köln em Munique",
+      "baixa_resolucao": false
+    }
+  ]
+}

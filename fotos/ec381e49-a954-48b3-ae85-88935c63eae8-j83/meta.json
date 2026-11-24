@@ -1,0 +1,38 @@
+{
+  "id": "ec381e49-a954-48b3-ae85-88935c63eae8-j83",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/v1792047963/prd/lvqahrhfyijkixf0xzv0",
+      "pagina": "https://www.spl.com.sa/en/news/watkins-wonderful-start-how-al-hilal-have-finally-found-their-lead-no-9",
+      "credito": "Saudi Pro League",
+      "rotulo": "Watkins Al Hilal",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/v1794040039/prd/r8wflwopizsjezoqxcea",
+      "pagina": "https://www.spl.com.sa/en/news/title-certainties-how-inzaghi-has-al-hilal-sitting-pretty-at-summit",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Hilal líder",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "3.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/bckkoy9yjl9aeyw5fheh",
+      "pagina": "https://www.spl.com.sa/en/news/sealed-with-a-kiss-al-hilal-s-premier-league-trio-clinch-al-clasico-thriller",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Hilal Clasico",
+      "baixa_resolucao": false
+    }
+  ]
+}

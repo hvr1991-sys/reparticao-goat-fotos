@@ -1,0 +1,27 @@
+{
+  "id": "90ba0dee-0846-45cd-9f01-1694ec9f855f-j82",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/v1787389399/prd/lksswafrxayfrnahpdss",
+      "pagina": "https://www.spl.com.sa/en/news/ronaldo-marks-return-with-brilliant-goal-earns-postecoglou-praise",
+      "credito": "Saudi Pro League",
+      "rotulo": "Ronaldo Al Nassr",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/v1791619949/prd/vsrvmv95z8lejwvcrtzt",
+      "pagina": "https://www.spl.com.sa/en/news/on-to-the-next-ronaldo-hits-980-career-goals-as-champions-al-nassr-move-joint-top",
+      "credito": "Saudi Pro League",
+      "rotulo": "Ronaldo 980",
+      "baixa_resolucao": false
+    }
+  ]
+}
