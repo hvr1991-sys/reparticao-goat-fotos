@@ -1,0 +1,38 @@
+{
+  "id": "ae52d691-ec6e-4ad6-acde-61d3e13e94ba-j72",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 1920,
+      "altura": 1287,
+      "url_imagem": "https://www.cbf.com.br/_next/image?url=https%3A%2F%2Fstcbfsiteprdimgbrs.blob.core.windows.net%2Fimg-site%2Fcdn%2F21_NOV_2026_ATLETICO_MINEIRO_X_BOCA_JR_SULAMERICANA_2026_1_abbee8f7c4.jpg&w=1920&q=70",
+      "pagina": "https://www.cbf.com.br/futebol-brasileiro/jogos/campeonato-brasileiro/serie-b/2026/atletico-goianiense-saf-x-vila-nova/833097",
+      "credito": "CBF",
+      "rotulo": "Atlético-GO x Vila Nova ida playoff",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 1920,
+      "altura": 1287,
+      "url_imagem": "https://www.cbf.com.br/_next/image?url=https%3A%2F%2Fstcbfsiteprdimgbrs.blob.core.windows.net%2Fimg-site%2Fcdn%2F21_NOV_2026_ATLETICO_MINEIRO_X_BOCA_JR_SULAMERICANA_2026_1_abbee8f7c4.jpg&w=1920&q=70",
+      "pagina": "https://www.cbf.com.br/futebol-brasileiro/jogos/campeonato-brasileiro/serie-b/2026/vila-nova-x-atletico-goianiense-saf/832867",
+      "credito": "CBF",
+      "rotulo": "Vila Nova x Atlético-GO",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "3.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_q-good/prd/assets/site%20image/Slide_16_9_-_1_clou9h.jpg",
+      "pagina": "https://www.spl.com.sa/en/players/84093/nacho",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Qadsiah - Nacho",
+      "baixa_resolucao": false
+    }
+  ]
+}

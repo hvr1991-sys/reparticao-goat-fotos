@@ -1,0 +1,26 @@
+{
+  "id": "3b7cf8e1-342b-4b43-8289-0eeb7ed3fbf8-j75",
+  "fotos": [
+    {
+      "ok": false,
+      "pagina": "https://www.herthabsc.com/en/news/2026/11/fcebsc-2627-match-report",
+      "erro": "robô simples: HTTP Error 404: Not Found · navegador: página sem imagem principal (título: Page error 404 | Hertha BSC)"
+    },
+    {
+      "ok": false,
+      "pagina": "https://www.herthabsc.com/de/nachrichten/2026/11/fcebsc-2627-spielbericht",
+      "erro": "robô simples: HTTP Error 404: Not Found · navegador: página sem imagem principal (título: Seitenfehler 404 | Hertha BSC)"
+    },
+    {
+      "ok": true,
+      "arquivo": "3.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://assets.bundesliga.com/matchteaser/DFL-COM-000002/DFL-SEA-0001KA/DFL-MAT-J043RS_prematch_en.png?fit=1200,630",
+      "pagina": "https://www.bundesliga.com/en/2bundesliga/matchday/2026-2027/12/fc-energie-cottbus-vs-hertha-bsc/liveticker",
+      "credito": "Bundesliga",
+      "rotulo": "Cottbus x Hertha liga",
+      "baixa_resolucao": false
+    }
+  ]
+}

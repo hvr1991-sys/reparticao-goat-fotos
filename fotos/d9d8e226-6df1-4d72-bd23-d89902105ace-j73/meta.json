@@ -1,0 +1,15 @@
+{
+  "id": "d9d8e226-6df1-4d72-bd23-d89902105ace-j73",
+  "fotos": [
+    {
+      "ok": false,
+      "pagina": "https://www.bundesliga.com/en/bundesliga/news/antonio-nusa-goals-assists-leipzig-norway-away-record-39810",
+      "erro": "cannot identify image file <_io.BytesIO object at 0x719b7f735850>"
+    },
+    {
+      "ok": false,
+      "pagina": "https://www.bundesliga.com/en/bundesliga/news/rb-leipzig-borussia-monchengladbach-match-report-highlights-matchday-1-nusa-nkunku-38871",
+      "erro": "cannot identify image file <_io.BytesIO object at 0x719b7f5b3970>"
+    }
+  ]
+}
