@@ -1,0 +1,27 @@
+{
+  "id": "eec11253-8d51-481a-b471-6090728760af-j105",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1500,
+      "altura": 844,
+      "url_imagem": "https://www.palmeiras.com.br/wp-content/uploads/2026/10/21102026_cg_palmeiras_destaque_7247_1.jpg",
+      "pagina": "https://www.palmeiras.com.br/wp-content/uploads/2026/10/21102026_cg_palmeiras_destaque_7247_1.jpg",
+      "credito": "Cesar Greco / Palmeiras",
+      "rotulo": "Palmeiras na final (alta)",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1500,
+      "altura": 844,
+      "url_imagem": "https://www.palmeiras.com.br/wp-content/uploads/2026/10/14102026_cg_palmeiras_destaque_9850_25.jpg",
+      "pagina": "https://www.palmeiras.com.br/wp-content/uploads/2026/10/14102026_cg_palmeiras_destaque_9850_25.jpg",
+      "credito": "Cesar Greco / Palmeiras",
+      "rotulo": "Palmeiras no Maracanã (alta)",
+      "baixa_resolucao": false
+    }
+  ]
+}
