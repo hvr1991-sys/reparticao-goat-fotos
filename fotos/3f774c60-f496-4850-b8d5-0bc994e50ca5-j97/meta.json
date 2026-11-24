@@ -1,0 +1,27 @@
+{
+  "id": "3f774c60-f496-4850-b8d5-0bc994e50ca5-j97",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1500,
+      "altura": 844,
+      "url_imagem": "https://www.palmeiras.com.br/wp-content/uploads/2026/08/20082026_cg_palmeiras_4264_31.jpg",
+      "pagina": "https://www.palmeiras.com.br/wp-content/uploads/2026/08/20082026_cg_palmeiras_4264_31.jpg",
+      "credito": "Cesar Greco / Palmeiras",
+      "rotulo": "Palmeiras treino",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1500,
+      "altura": 844,
+      "url_imagem": "https://palmeiras.com.br/wp-content/uploads/2025/11/28112025_cg_palmeiras_3475_54.jpg",
+      "pagina": "https://palmeiras.com.br/wp-content/uploads/2025/11/28112025_cg_palmeiras_3475_54.jpg",
+      "credito": "Cesar Greco / Palmeiras",
+      "rotulo": "Palmeiras treino estádio",
+      "baixa_resolucao": false
+    }
+  ]
+}
