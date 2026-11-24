@@ -1,0 +1,38 @@
+{
+  "id": "3b7cf8e1-342b-4b43-8289-0eeb7ed3fbf8-j77",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 3000,
+      "altura": 1958,
+      "url_imagem": "https://content.herthabsc.com/site/binaries/_bsc_1795356649823/content/gallery/news/citypress_seguin-jubel-fcebsc-2627.jpeg",
+      "pagina": "https://www.herthabsc.com/de/nachrichten/2026/11/spielbericht-fcebsc-2627",
+      "credito": "Hertha BSC",
+      "rotulo": "Cottbus x Hertha 0:4",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 3000,
+      "altura": 1821,
+      "url_imagem": "https://content.herthabsc.com/site/binaries/_bsc_1795360434044/content/gallery/news/citypress-fcebsc-2627-goenning.jpeg",
+      "pagina": "https://www.herthabsc.com/de/nachrichten/2026/11/stimmen-fcebsc-2627",
+      "credito": "Hertha BSC",
+      "rotulo": "Cottbus x Hertha vozes",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "3.jpg",
+      "largura": 3000,
+      "altura": 1927,
+      "url_imagem": "https://content.herthabsc.com/site/binaries/_bsc_1795361628406/content/gallery/news/citypress-fcebsc-pk.jpeg",
+      "pagina": "https://www.herthabsc.com/de/nachrichten/2026/11/pressekonferenz-nach-fcebsc-2627",
+      "credito": "Hertha BSC",
+      "rotulo": "Cottbus x Hertha coletiva",
+      "baixa_resolucao": false
+    }
+  ]
+}
