@@ -1,0 +1,43 @@
+{
+  "id": "66025979-8302-4571-9699-54ce277c39d6-j81",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_q-good/prd/assets/site%20image/Slide_16_9_-_1_clou9h.jpg",
+      "pagina": "https://www.spl.com.sa/en/players/84642/gabriel-carvalho",
+      "credito": "Saudi Pro League",
+      "rotulo": "Gabriel Carvalho",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/vffvziuuvaqegqsxlrzs",
+      "pagina": "https://www.spl.com.sa/en/news/the-brazilian-ballers-bringing-flicks-flair-and-fortitude-to-rsl",
+      "credito": "Saudi Pro League",
+      "rotulo": "Brasileiros na RSL",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": false,
+      "pagina": "https://alqadsiah.com/en/matches/al-qadsiah-vs-al-hazem-2026-05-14-1",
+      "erro": "cannot identify image file <_io.BytesIO object at 0x77bd2f9dce00>"
+    },
+    {
+      "ok": true,
+      "arquivo": "4.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_q-good/prd/assets/site%20image/Slide_16_9_-_1_clou9h.jpg",
+      "pagina": "https://www.spl.com.sa/en/match/1f2a0e2f315e4b58854388f487c09cec/qad-vs-ahl",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Qadsiah x Al Ahli",
+      "baixa_resolucao": false
+    }
+  ]
+}

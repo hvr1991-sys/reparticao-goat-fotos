@@ -1,0 +1,15 @@
+{
+  "id": "d9d8e226-6df1-4d72-bd23-d89902105ace-j80",
+  "fotos": [
+    {
+      "ok": false,
+      "pagina": "https://assets.bundesliga.com/player/dfl-obj-j01kk4-dfl-clu-000017-dfl-sea-0001ka-body.png",
+      "erro": "cannot identify image file <_io.BytesIO object at 0x79e608cb5620>"
+    },
+    {
+      "ok": false,
+      "pagina": "https://assets.bundesliga.com/player/dfl-obj-j01kk4-dfl-clu-000017-dfl-sea-0001ka-body.png?fit=1600,1600",
+      "erro": "cannot identify image file <_io.BytesIO object at 0x79e6082bb920>"
+    }
+  ]
+}
