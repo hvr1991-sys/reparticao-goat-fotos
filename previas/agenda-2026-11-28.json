@@ -1,10 +1,9 @@
 {
  "titulo": "AGENDA GOAT · SÁB 28.11",
  "ok": false,
- "review": "conferência do kit: CONFERÊNCIA AUTOMÁTICA REPROVOU A ARTE: card da agenda sem foto: HERTHA BERLIM X KARLSRUHER (todo jogo leva foto) | card da agenda sem foto: PADERBORN X SCHALKE 04 (todo jogo leva foto)\n",
+ "review": "conferência do kit: CONFERÊNCIA AUTOMÁTICA REPROVOU A ARTE: card da agenda sem foto: HERTHA BERLIM X KARLSRUHER (todo jogo leva foto)\n",
  "sem_foto": [
-  "HERTHA BERLIM X KARLSRUHER",
-  "PADERBORN X SCHALKE 04"
+  "HERTHA BERLIM X KARLSRUHER"
  ],
  "spec": {
   "tipo": "agenda",
@@ -26,7 +25,7 @@
     "horario": "11H20",
     "confronto": "AL ETTIFAQ X AL HILAL",
     "foto": "fotos/ec381e49-a954-48b3-ae85-88935c63eae8-j83/1.png",
-    "foco": "50% 0%"
+    "foco": "50% 16%"
    },
    {
     "rotulo": "BUNDESLIGA",
@@ -38,21 +37,23 @@
    {
     "rotulo": "BUNDESLIGA",
     "horario": "11H30",
-    "confronto": "PADERBORN X SCHALKE 04"
+    "confronto": "PADERBORN X SCHALKE 04",
+    "foto": "fotos/oficial-schalke-04-202611251425/1.png",
+    "foco": "50% 0%"
    },
    {
     "rotulo": "SAUDI PRO LEAGUE",
     "horario": "14H30",
     "confronto": "AL AHLI X AL TAAWOUN",
     "foto": "fotos/f16acadf-8290-4373-bbfd-6440d848a0a4/1.png",
-    "foco": "50% 0%"
+    "foco": "50% 11%"
    },
    {
     "rotulo": "LIBERTADORES",
     "horario": "17H",
     "confronto": "PALMEIRAS X ESTUDIANTES",
-    "foto": "fotos/eec11253-8d51-481a-b471-6090728760af-j105/1.png",
-    "foco": "60% 25%"
+    "foto": "fotos/eec11253-8d51-481a-b471-6090728760af-j105/2.png",
+    "foco": "50% 48%"
    }
   ],
   "marca": "logo",

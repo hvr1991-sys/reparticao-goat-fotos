@@ -1,0 +1,27 @@
+{
+  "id": "oficial-schalke-04-202611251425",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://storage.schalke04.de/sites/1/2026/07/20260507-trainingsauftakt-joggen.jpg",
+      "pagina": "https://schalke04.de/aktuelles/newscenter/",
+      "credito": "SCHALKE 04 (site oficial · schalke04.de)",
+      "rotulo": "PADERBORN X SCHALKE 04 · SCHALKE 04",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://storage.schalke04.de/sites/1/2026/01/app2026_kv_hd700.jpg",
+      "pagina": "https://schalke04.de/aktuelles/apps/schalke-04-app/?utm_source=schalke04.de&utm_medium=Website&utm_campaign=2024_START_S04App&utm_id=Startseite",
+      "credito": "SCHALKE 04 (site oficial · schalke04.de)",
+      "rotulo": "PADERBORN X SCHALKE 04 · SCHALKE 04",
+      "baixa_resolucao": false
+    }
+  ]
+}
