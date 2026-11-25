@@ -104,6 +104,7 @@ def _miniatura(arquivo, lado=512):
 
 
 def escolher_foto(confronto, campeonato, cands):
+    sys.path.insert(0, str(ROOT / "tools"))
     """Gemini olha as candidatas e escolhe a melhor para o card (ou nenhuma).
     Sem GEMINI_API_KEY, fica com a primeira da biblioteca."""
     import os
@@ -117,7 +118,8 @@ def escolher_foto(confronto, campeonato, cands):
     for i, c in enumerate(cands, 1):
         partes += [{"text": f"Foto {i}:"}, _miniatura(c)]
     partes.append({"text": f"""Você é designer do Canal GOAT. Escolha a foto para o card da agenda do jogo {confronto} ({campeonato}).
-O card mostra a foto numa faixa horizontal à direita (corte largo e baixo).
+O card mostra a foto numa faixa horizontal estreita à direita (corte largo e baixo, centrado no rosto principal).
+O jogador em destaque precisa estar grande, de frente e com o rosto visível; goleiro de costas, árbitro, torcida ou foto aberta demais não servem.
 Reprove fotos com placar, texto, gráfico, logo de arte pronta, marca d'água, de outro clube que não seja um dos dois do jogo,
 ou que não sejam de futebol/jogadores. Prefira lance de jogo ou comemoração com jogadores do time da casa (o primeiro), rosto visível.
 Responda só ```json {{"foto": <número ou 0 se nenhuma serve>, "motivo": "curto"}}```"""})
@@ -131,12 +133,12 @@ Responda só ```json {{"foto": <número ou 0 se nenhuma serve>, "motivo": "curto
         return cands[0], f"biblioteca (Gemini indisponível: {str(e)[:80]})"
 
 
-def foco(arquivo):
-    """Enquadra o rosto principal no card (área da foto ~422x160); sem rosto, o terço de cima."""
+def foco(arquivo, altura=160):
+    """Enquadra o rosto principal no card (área da foto 422 x altura do card); sem rosto, o terço de cima."""
     sys.path.insert(0, str(ROOT / "kit"))
     try:
         from render import foco_rosto
-        f = foco_rosto(ROOT / arquivo, caixa=(422, 160))
+        f = foco_rosto(ROOT / arquivo, caixa=(422, altura))
         return "60% 25%" if f == "50% 14%" else f
     except Exception:
         return "60% 25%"
@@ -168,6 +170,10 @@ def escolher_equipe(participantes, rodizio, ja_usados):
 def montar(dia, transmissoes, rodizio):
     d = date.fromisoformat(dia)
     fotos = biblioteca()
+    n_cards = len([t for t in transmissoes if (t.get("kind") or "").lower() != "outro"])
+    # mesma conta do kit (render.agenda) para a altura de cada card
+    k = min(1.0, (850 - (n_cards - 1) * 20) / (n_cards * 160)) if n_cards else 1.0
+    altura_card = int(160 * k)
     usadas, equipe_usada, jogos, pendencias = set(), set(), [], []
     for t in sorted(transmissoes, key=lambda x: x.get("time") or ""):
         kind = (t.get("kind") or "").lower()
@@ -189,10 +195,20 @@ def montar(dia, transmissoes, rodizio):
         confronto = re.sub(r"\s*\(.*?\)", "", titulo).strip()
         card = {"rotulo": comp, "horario": horario(t.get("time")), "confronto": confronto}
         foto, motivo = escolher_foto(confronto, comp, candidatas(confronto, fotos, usadas))
+        if not foto and __import__("os").environ.get("GEMINI_API_KEY"):
+            # nada bom na biblioteca: busca no site oficial dos clubes (casa primeiro)
+            import fotos_oficiais
+            for time_ in [p.strip() for p in re.split(r"\s+X\s+", confronto, maxsplit=1)]:
+                novas = [n for n in fotos_oficiais.buscar(time_, comp, f"{confronto} · {time_}") if n not in usadas]
+                if novas:
+                    foto, motivo = escolher_foto(confronto, comp, novas[:4])
+                    if foto:
+                        motivo = f"site oficial · {motivo}"
+                        break
         print(f"  {confronto}: {foto or '-'} ({motivo})", file=sys.stderr, flush=True)
         if foto:
             usadas.add(foto)
-            card["foto"], card["foco"] = foto, foco(foto)
+            card["foto"], card["foco"] = foto, foco(foto, altura_card)
         else:
             pendencias.append(confronto)
         jogos.append(card)

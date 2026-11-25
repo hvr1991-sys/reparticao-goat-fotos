@@ -126,7 +126,7 @@ def main():
         except Exception as e:
             print(dia, "erro:", e, flush=True)
     run = lambda *a: subprocess.run(list(a), cwd=ROOT, check=False)
-    run("git", "add", "previas", "arts")
+    run("git", "add", "previas", "arts", "fotos", "jobs", "tools/clubes.json")
     if subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=ROOT).returncode != 0:
         run("git", "commit", "-q", "-m", f"agenda do dia ({modo})")
         for _ in range(3):
