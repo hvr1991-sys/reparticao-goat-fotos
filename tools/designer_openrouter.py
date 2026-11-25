@@ -84,7 +84,7 @@ def revisar_arte(png, card):
     r = json_de(gerar([imagem(png), {"text": f"""Revise esta arte do Canal GOAT (post {card.get('pub_date')}) sobre "{card['title']}".
 Reprove se: texto cortado ou saindo da arte; erro de português; data/dia errados para o post; foto cobrindo rosto com texto;
 informação que parece inventada. Responda só ```json {{"ok": true/false, "corrigir": "o que mudar no spec, curto"}}```"""}], temp=0.1))
-    return bool(r.get("ok")), str(r.get("corrigir", ""))
+    return r.get("ok") is True, str(r.get("corrigir", ""))
 
 
 def produzir(card, docs, baixar_fotos, montar, informar):
@@ -126,6 +126,8 @@ def produzir(card, docs, baixar_fotos, montar, informar):
                     else:
                         j.pop("foto")
             spec["marca"] = "logo"
+            if card.get("preview_background") and spec.get("tipo") == "agenda":
+                spec["fundo"] = card["preview_background"]
             status, result, png = montar(cid, spec)
             if status != "feito":
                 fix = f"o kit deu erro: {result.get('erro', '')[:300]}"
