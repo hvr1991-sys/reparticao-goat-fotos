@@ -19,7 +19,7 @@ KEY = os.environ.get("GEMINI_API_KEY", "")
 _modelo = None
 
 
-def _req(path, body=None, timeout=180):
+def _req(path, body=None, timeout=90):
     data = json.dumps(body).encode() if body is not None else None
     r = urllib.request.Request(f"{API}/{path}", data=data, method="POST" if data else "GET",
                                headers={"x-goog-api-key": KEY, "Content-Type": "application/json"})
@@ -67,9 +67,13 @@ def gerar(partes, busca=False, temp=0.6):
                 det = e.read().decode(errors="ignore")[:300]
                 ultimo = f"{nome}{' +busca' if usar_busca else ''}: HTTP {e.code} {det}"
                 print("Gemini recusou:", ultimo, flush=True)
-                if e.code in (400, 402, 403, 404, 429):
-                    continue
+                if e.code in (400, 402, 403, 404, 429) or e.code >= 500:
+                    continue  # sem cota, modelo indisponível ou sobrecarregado: tenta o próximo
                 raise
+            except (TimeoutError, urllib.error.URLError, OSError) as e:
+                ultimo = f"{nome}: {e}"
+                print("Gemini sem resposta:", ultimo, flush=True)
+                continue
             cand = (out.get("candidates") or [{}])[0]
             txt = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))
             if txt:
