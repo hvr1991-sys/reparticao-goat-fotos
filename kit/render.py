@@ -530,13 +530,36 @@ def render(spec, out_path):
         # Uma imagem com texto cortado ou asset ausente não vira entrega aprovada.
         report = pg.evaluate("""() => {
           const art=document.querySelector('.art').getBoundingClientRect();
-          const errors=[];
+          const errors=[], measurements=[];
           for (const el of document.querySelectorAll('[data-qa-text],[data-qa-box]')) {
             const r=el.getBoundingClientRect();
             if(r.left<art.left-1||r.right>art.right+1||r.top<art.top-1||r.bottom>art.bottom+1)
               errors.push('bloco fora da área da peça: '+el.innerText.slice(0,80));
-            if(el.hasAttribute('data-qa-text') && (el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+2))
-              errors.push('texto não cabe na área segura: '+el.innerText.slice(0,80));
+            if(el.hasAttribute('data-qa-text')) {
+              const style=getComputedStyle(el), label=el.innerText.slice(0,80);
+              // Barlow has 1.2em font metrics. With line-height:1 and visible
+              // overflow, scrollHeight can exceed the line box without clipping
+              // a glyph. Constrain width, explicit heights, and real clipping
+              // ancestors instead of treating natural font overhang as a crop.
+              const limitedHeight=!!el.style.height || (!!el.style.top && !!el.style.bottom);
+              if(el.scrollWidth>el.clientWidth+1 || (limitedHeight && el.scrollHeight>el.clientHeight+2))
+                errors.push('texto não cabe na área segura: '+label);
+              const range=document.createRange();range.selectNodeContents(el);
+              const textRect=range.getBoundingClientRect();
+              for(let ancestor=el;ancestor;ancestor=ancestor.parentElement) {
+                const cs=getComputedStyle(ancestor), clip=ancestor.getBoundingClientRect();
+                const cropX=['hidden','clip','auto','scroll'].includes(cs.overflowX);
+                const cropY=['hidden','clip','auto','scroll'].includes(cs.overflowY);
+                if((cropX && (textRect.left<clip.left-1||textRect.right>clip.right+1)) ||
+                   (cropY && (textRect.top<clip.top-1||textRect.bottom>clip.bottom+1))) {
+                  errors.push('texto recortado por um contêiner: '+label);break;
+                }
+              }
+              measurements.push({text:label,x:r.x,y:r.y,width:r.width,height:r.height,
+                scrollWidth:el.scrollWidth,scrollHeight:el.scrollHeight,
+                clientWidth:el.clientWidth,clientHeight:el.clientHeight,
+                fontSize:style.fontSize,lineHeight:style.lineHeight,overflowY:style.overflowY});
+            }
           }
           for (const img of document.images)
             if(!img.complete||!img.naturalWidth) errors.push('imagem não carregada');
@@ -545,12 +568,16 @@ def render(spec, out_path):
           });
           const logos=document.querySelectorAll('[data-goat-logo]').length;
           if(logos!==1) errors.push('a peça precisa de um único logo GOAT');
-          return {width:art.width,height:art.height,logos,cards,errors};
+          return {width:art.width,height:art.height,logos,cards,measurements,errors};
         }""")
+        destination = Path(out_path)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.with_suffix(".layout.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         if report["errors"]:
+            # Preserve a visibly rejected diagnostic, never the deliverable path.
+            pg.screenshot(path=str(destination.with_suffix(".rejected.png")), clip={"x": 0, "y": 0, "width": width, "height": height})
             b.close()
             raise ValueError("CONFERÊNCIA DE LAYOUT: " + " | ".join(report["errors"]))
-        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
         pg.screenshot(path=str(out_path), clip={"x": 0, "y": 0, "width": width, "height": height})
         b.close()
     print(out_path)

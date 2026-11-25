@@ -50,8 +50,12 @@ def _provider_record(phase):
     return {"phase": phase, **{key: actual.get(key) for key in ("model", "cost", "calls", "vision", "structured")}}
 
 
-def _public_error(error):
+def _public_error(error, stage=None):
     # Never emit arbitrary exception text: validation errors can include private data.
+    # Renderer fixtures contain only the public controlled sample and source assets.
+    if stage == "renderer":
+        return {"type": type(error).__name__, "reason": str(error)[:2000],
+                "error_sha256": digest(str(error))}
     if isinstance(error, ReleaseFailure):
         return {"type": type(error).__name__, "reason": str(error)[:320]}
     if isinstance(error, openrouter_adapter.ProviderUnavailable):
@@ -236,7 +240,7 @@ def main():
         summary["ok"] = True
     except Exception as error:
         summary["failed_stage"] = stage
-        summary["error"] = _public_error(error)
+        summary["error"] = _public_error(error, stage)
     finally:
         summary["ended_at"] = datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat()
         _save(output / "summary.json", summary)
