@@ -26,7 +26,7 @@ def asset(a):
 def build(s):
     if s.get("tipo")!="composicao_livre":
         raise ValueError("tipo invalido")
-    if s.get("finalidade")=="agenda_jogo_unico":
+    if s.get("finalidade")=="agenda_jogo_unico" or (s.get("finalidade")=="agenda" and len(s.get("jogos",[]))==1):
         raise ValueError("usar o modelo obrigatorio jogo_unico")
     if s.get("marca","logo") not in ("logo","bodinho"):
         raise ValueError("marca invalida")
@@ -80,9 +80,15 @@ def build(s):
                 raise ValueError("dado exige fonte")
             size=integer(e.get("tamanho",48),24,180)
             weight=integer(e.get("peso",600),400,800)
+            if weight not in (400,500,600,700,800):
+                raise ValueError("peso tipografico indisponivel")
             align=ALIGN[e.get("alinhamento","esquerda")]
             color=COLORS[e.get("cor","branco")]
-            parts.append(f'<div data-text="1" style="{pos};font:{weight} {size}px/1.1 \'GOAT Sans\';text-align:{align};color:{color};white-space:nowrap">{r.esc(value)}</div>')
+            stroke=integer(e.get("contorno",0),0,5)
+            if stroke and role!="titulo":
+                raise ValueError("contorno reservado ao titulo experimental")
+            outline=f"-webkit-text-stroke:{stroke}px {color};color:transparent" if stroke else f"color:{color}"
+            parts.append(f'<div data-text="1" style="{pos};font:{weight} {size}px/1.1 \'GOAT Sans\';text-align:{align};{outline};white-space:nowrap">{r.esc(value)}</div>')
         else:
             raise ValueError("elemento desconhecido")
     if sum(e.get("papel")=="titulo" for e in items)>2:
