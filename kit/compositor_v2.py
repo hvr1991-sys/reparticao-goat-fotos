@@ -53,8 +53,8 @@ def build(s):
         raise ValueError("tipo invalido")
     if s.get("finalidade")=="agenda_jogo_unico" or (s.get("finalidade")=="agenda" and len(s.get("jogos",[]))==1):
         raise ValueError("usar o modelo obrigatorio jogo_unico")
-    if s.get("marca","logo") not in ("logo","bodinho"):
-        raise ValueError("marca invalida")
+    if s.get("marca","logo") != "logo":
+        raise ValueError("usar exclusivamente o logo GOAT, nunca o bodinho")
     items=s.get("elementos")
     if not isinstance(items,list) or not 2<=len(items)<=32 or not all(isinstance(e,dict) for e in items):
         raise ValueError("2 a 32 elementos")
