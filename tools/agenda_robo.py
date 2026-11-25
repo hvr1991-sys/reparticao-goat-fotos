@@ -34,12 +34,12 @@ def api(acao, body=None, **params):
         return json.load(r)
 
 
-def render(spec, out):
+def render(spec, out, sem_conferencia=False):
     s = agenda.spec_para_kit(spec)
     tmp = Path("/tmp") / f"agenda-{out.stem}.json"
     tmp.write_text(json.dumps(processar.resolver(s), ensure_ascii=False), encoding="utf-8")
     r = subprocess.run([sys.executable, str(ROOT / "kit" / "render.py"), str(tmp), str(out)], capture_output=True, text=True,
-                       env={**os.environ, "RG_EXIGIR_EQUIPE": "1"})
+                       env={**os.environ, "RG_EXIGIR_EQUIPE": "1", **({"RG_SEM_CONFERENCIA": "1"} if sem_conferencia else {})})
     return r.returncode == 0 and out.exists(), (r.stderr or r.stdout)[-600:]
 
 
@@ -81,6 +81,8 @@ def um_dia(dia, modo):
     ok_kit, erro = render(spec, previa)
     if not ok_kit:
         print(dia, "kit reprovou:", erro, flush=True)
+        if modo != "valer":
+            render(spec, previa, sem_conferencia=True)  # amostra: mostra mesmo assim, com o card sem foto
     ok, review, nota = pente_fino(previa, dia, titulo, trans) if ok_kit else (False, f"conferência do kit: {erro}", 1)
     print(dia, titulo, "| pente fino:", "OK" if ok else "REPROVADO", "|", review, "| sem foto:", pend, flush=True)
     (ROOT / "previas" / f"agenda-{dia}.json").write_text(json.dumps({"titulo": titulo, "ok": ok, "review": review, "sem_foto": pend, "spec": spec}, ensure_ascii=False, indent=1), encoding="utf-8")
