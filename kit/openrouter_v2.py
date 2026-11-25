@@ -22,7 +22,9 @@ def gerar(contexto, *, transport=None):
             {"role":"user","content":json.dumps(contexto,ensure_ascii=False)}
         ],
         "max_tokens": 4000,
-        "temperature": 0.4
+        "temperature": 0.2,
+        "response_format": {"type":"json_object"},
+        "provider": {"require_parameters":True}
     }
     req = urllib.request.Request(URL, data=json.dumps(payload).encode("utf-8"),
         headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"},method="POST")
@@ -34,7 +36,12 @@ def gerar(contexto, *, transport=None):
     except (OSError,ValueError) as exc:
         raise ProviderUnavailable("OpenRouter indisponivel ou resposta invalida") from None
     try:
-        text = data["choices"][0]["message"]["content"]
+        if not data.get("choices"):
+            raise ValueError("provedor retornou zero choices")
+        choice=data["choices"][0]
+        if choice.get("finish_reason")=="length":
+            raise ValueError("resposta truncada")
+        text = choice["message"]["content"]
         if not isinstance(text,str):
             raise ValueError("conteudo ausente")
         text=text.strip()
@@ -42,4 +49,11 @@ def gerar(contexto, *, transport=None):
             text=text[7:-3].strip()
         return diretor_v2.aceitar(text,contexto)
     except (KeyError,IndexError,TypeError,ValueError) as exc:
-        raise ProviderUnavailable("composicao recusada; manter pauta em fila") from None
+        # No raw provider output or credentials in public logs.
+        if isinstance(exc,json.JSONDecodeError):
+            reason=f"JSON invalido na linha {exc.lineno}, coluna {exc.colno}"
+        elif isinstance(exc,ValueError):
+            reason=str(exc)[:180] if contexto.get("briefing",{}).get("ilustrativo") else "validacao de campos"
+        else:
+            reason=type(exc).__name__
+        raise ProviderUnavailable("composicao recusada: "+reason) from None
