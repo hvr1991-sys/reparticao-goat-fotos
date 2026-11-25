@@ -1,0 +1,83 @@
+name: Diagnostico GOAT - Groq e motor grafico
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  groq:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Verificar acesso e modelo
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os,json,urllib.request,urllib.error,sys,re
+          key=os.environ.get("GROQ_API_KEY")
+          if not key: sys.exit("Secret ausente")
+          def call(path, body=None):
+              req=urllib.request.Request("https://api.groq.com/openai/v1/"+path,data=json.dumps(body).encode() if body else None,headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"})
+              try:
+                  with urllib.request.urlopen(req,timeout=30) as r: return json.load(r)
+              except urllib.error.HTTPError as e:
+                  print("HTTP",e.code,"endpoint",path)
+                  try:
+                      err=json.loads(e.read(8192)).get("error",{})
+                      for k in ("code","type"):
+                          v=err.get(k)
+                          if isinstance(v,str) and re.fullmatch(r"[a-zA-Z0-9_-]{1,80}",v): print(k,v)
+                      msg=str(err.get("message","")).lower()
+                      for term in ("country","region","organization","permission","blocked","billing","model","api key","rate limit","project"):
+                          if term in msg: print("Indicador:",term)
+                  except Exception: print("Resposta de erro nao estruturada")
+                  raise SystemExit(1)
+          models=call("models")
+          ids=[m.get("id") for m in models.get("data",[])]
+          print("Listagem OK; modelos disponiveis:",len(ids))
+          model="openai/gpt-oss-20b"
+          if model not in ids: sys.exit("Modelo alvo nao listado")
+          d=call("chat/completions",{"model":model,"messages":[{"role":"user","content":"Responda apenas GOAT_OK"}],"max_completion_tokens":256})
+          answer=(d.get("choices") or [{}])[0].get("message",{}).get("content")
+          if not isinstance(answer,str) or "GOAT_OK" not in answer: sys.exit("Resposta nao validada")
+          print("Groq: conexao e inferencia OK")
+          PY
+  motor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pillow==11.1.0 numpy==2.2.3 playwright==1.49.1
+      - name: Preparar navegador
+        run: |
+          if [ ! -x /usr/bin/google-chrome ]; then
+            python -m playwright install --with-deps chromium
+          fi
+      - name: Renderizar fixture sem IA
+        run: |
+          mkdir -p /tmp/goat-render-test
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          spec={"tipo":"chamada","titulo":[{"texto":"QUEM VENCE?","amarelo":True}],"marca":"logo","ilustrativo":True,"sobretitulo":"TESTE TECNICO","jogo":{"campeonato":"TESTE GOAT","confronto":"EQUIPE A X EQUIPE B","data":"28/11","hora":"18H"}}
+          Path("/tmp/goat-render-test/spec.json").write_text(json.dumps(spec,ensure_ascii=False,indent=2))
+          PY
+          python kit/render.py /tmp/goat-render-test/spec.json /tmp/goat-render-test/arte.png
+          python - <<'PY'
+          from PIL import Image
+          p="/tmp/goat-render-test/arte.png"
+          with Image.open(p) as im:
+              assert im.format=="PNG" and im.size==(1080,1350)
+              im.verify()
+          print("PNG valido 1080x1350; revisao visual pendente")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: goat-motor-sem-ia
+          path: /tmp/goat-render-test/
+          retention-days: 3
