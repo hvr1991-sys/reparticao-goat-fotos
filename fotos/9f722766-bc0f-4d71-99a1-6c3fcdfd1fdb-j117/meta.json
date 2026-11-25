@@ -1,0 +1,27 @@
+{
+  "id": "9f722766-bc0f-4d71-99a1-6c3fcdfd1fdb-j117",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/v1793266927/prd/e88qiczbgvqnsjve04of",
+      "pagina": "https://www.spl.com.sa/en/news/boulbina-and-benrahma-all-algerian-clash-combining-ability-and-ambition",
+      "credito": "Saudi Pro League",
+      "rotulo": "Boulbina e Benrahma",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_q-good/prd/assets/site%20image/Slide_16_9_-_1_clou9h.jpg",
+      "pagina": "https://www.spl.com.sa/en/match/39a6308edfcc4a6fa82bb63b1ac880f2/al-hazem-vs-diriyah/commentary",
+      "credito": "Saudi Pro League",
+      "rotulo": "Diriyah vitória",
+      "baixa_resolucao": false
+    }
+  ]
+}

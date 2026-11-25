@@ -1,0 +1,27 @@
+{
+  "id": "e86fe282-c5f7-4e90-a9a6-66b0cfe4749b-j118",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 1200,
+      "altura": 675,
+      "url_imagem": "https://www.vfl-wolfsburg.de/fileadmin/_processed_/0/b/csm_261121-jubel-vfl-wolfsburg-1_4ae2182de8.jpg",
+      "pagina": "https://www.vfl-wolfsburg.de/newsdetails/news-detail/detail/news/vierter-heimsieg-in-serie",
+      "credito": "VfL Wolfsburg",
+      "rotulo": "Wolfsburg Heimsieg DE",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 1200,
+      "altura": 675,
+      "url_imagem": "https://www.vfl-wolfsburg.de/fileadmin/_processed_/f/9/csm_261122-talent-series-vfl-wolfsburg_4203267222.jpg",
+      "pagina": "https://www.vfl-wolfsburg.de/en/newsdetails/news-detail/detail/news/six-goals-seal-third-win",
+      "credito": "VfL Wolfsburg",
+      "rotulo": "Wolfsburg seis gols",
+      "baixa_resolucao": false
+    }
+  ]
+}
