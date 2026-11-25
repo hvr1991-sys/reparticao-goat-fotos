@@ -156,7 +156,7 @@ def _schema_object(properties):
             "additionalProperties": False}
 
 
-def _role_schema(role, ids):
+def _role_schema(role, ids, calendar=None):
     """Structure the reply; the existing validators still enforce editorial gates."""
     iso_day = {"type": "string", "pattern": r"^\d{4}-\d{2}-\d{2}$"}
     editorial_format = {"type": "string", "enum": ["Arte feed", "Reels"]}
@@ -173,6 +173,14 @@ def _role_schema(role, ids):
             "urgency": _schema_text(100),
         }
         maximum = 2
+        variants = [_schema_object({**fields,
+            "pub_date": {**iso_day, "enum": [day]},
+            "due_date": {**iso_day, "enum": calendar[:index + 1]},
+        }) for index, day in enumerate(calendar or [])]
+        if len(variants) != 8:
+            raise ValueError("Calendário editorial de oito dias obrigatório")
+        return _schema_object({"items": {"type": "array", "minItems": 0, "maxItems": maximum,
+                                         "items": {"anyOf": variants}}})
     else:
         fields = {"id": {"type": "string", "enum": sorted(ids)}}
         if role == "coordinate":
@@ -268,6 +276,8 @@ def _research(snapshot, agent, generator):
         return []
     news = news[:20]
     known = {n["id"]: n for n in news}
+    calendar = [(date.fromisoformat(snapshot["today"]) + timedelta(days=offset)).isoformat()
+                for offset in range(8)]
     def validate(data):
         _items_validator(maximum=2)(data)
         used_ids = set()
@@ -297,8 +307,12 @@ Retorne {"items":[{"source_ids":[id],"title":"...","league":"...",
 "pub_date":"AAAA-MM-DD","due_date":"AAAA-MM-DD","general_tournament":true,
 "relevance":9,"urgency":"esta semana"}]}. Datas em até sete dias; preferência
 por arte. Fonte é headline, não alegue ter lido o artigo inteiro."""
-    result = _ask(snapshot, agent, task, {"news": news, "broadcasts": snapshot.get("broadcasts", [])},
-                  generator, validate, _role_schema("research", known))
+    task += "\nEscolha pub_date e due_date somente entre as combinações do calendário fornecido; entrega nunca depois do post."
+    data = {"news": news, "broadcasts": snapshot.get("broadcasts", []),
+            "calendar": [{"pub_date": day, "due_dates": calendar[:index + 1]}
+                         for index, day in enumerate(calendar)]}
+    result = _ask(snapshot, agent, task, data, generator, validate,
+                  _role_schema("research", known, calendar=calendar))
     actions = []
     for x in result["items"]:
         ids = sorted(x["source_ids"])

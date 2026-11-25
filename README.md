@@ -39,6 +39,8 @@ O painel distingue atividade recente, espera e ausência de atualização pelos 
 
 **GOAT consolidated release verification** é a conferência de liberação. Ela verifica os arquivos originais, quatro composições, autenticação Magnific e planejamento/revisões reais do OpenRouter. Em `main`, lê o contexto privado e executa uma rodada dos nove cargos em memória, sem gravar no banco. O artifact público contém somente amostras controladas, contagens, hashes e diagnósticos sanitizados.
 
+Quando a alteração é apenas editorial, **GOAT authenticated editorial verification** confere essa etapa em `main` sem repetir chamadas visuais já verificadas. A verificação completa permanece disponível por execução manual; uma liberação combina a evidência visual válida com a conferência editorial correspondente.
+
 Testes antigos de Gemini e rotas alternativas foram desativados e mantidos no histórico. Uma resposta simulada não comprova funcionamento dos provedores. Uma aprovação técnica de amostra não substitui a aprovação editorial humana.
 
 Para renderizar uma peça localmente, use as dependências do workflow e um navegador Chrome/Chromium disponível:

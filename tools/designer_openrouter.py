@@ -37,6 +37,7 @@ Magnific é o único gerador visual: pode criar cenário separado quando útil, 
 uniformes, escudos, texto ou logo. Nunca redesenhe fotos de atletas. Agenda usa o estádio da skill.
 Só selecione fotos do catálogo fornecido; não invente URLs nem caminhos.
 Texto ditado no pedido do Gestor deve ser mantido literalmente.
+Nomes de pessoas só podem vir das fontes e metadados; não identifique nem confirme pessoas pelo rosto.
 """
 
 SPEC_GUIDE = """Contrato do kit (não escreva HTML nem código):
@@ -166,10 +167,15 @@ def _review_contract(r):
 
 
 def foto_ok(path, card):
+    evidence = [{key: item.get(key) for key in ("texto", "pagina", "credito", "rotulo")}
+                for item in card.get("_photo_candidates", [])
+                if (ROOT / item["arquivo"]).resolve() == Path(path).resolve()]
     r = gerar_json([imagem(path), {"text": "Avalie a foto real para: " + str(card.get("title")) +
         " · " + str(card.get("league")) +
-        '. Reprove marca d\'água/agência, placar, arte pronta/texto sobreposto, identidade errada ou baixa qualidade. '
-        'Patrocinador e escudo reais na camisa NÃO são sobreposição. Não invente identidade. '
+        '. Reprove marca d\'água/agência, placar, arte pronta/texto sobreposto, incompatibilidade com as fontes ou baixa qualidade. '
+        'Patrocinador e escudo reais na camisa NÃO são sobreposição. Não identifique pessoas pelo rosto: '
+        'nomes precisam estar documentados nas fontes e metadados fornecidos. '
+        'Metadados da fotografia: ' + json.dumps(evidence, ensure_ascii=False) + '. '
         'Retorne {"ok":true/false,"motivo":"curto"}.'}], validator=_review_contract, temp=0.1)
     return r["ok"] is True, str(r.get("motivo") or "")
 

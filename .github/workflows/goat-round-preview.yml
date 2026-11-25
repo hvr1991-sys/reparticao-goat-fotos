@@ -2,7 +2,7 @@ name: GOAT consolidated release verification
 on:
   workflow_dispatch:
   push:
-    branches: [ia-goat-original, main]
+    branches: [ia-goat-original]
     paths:
       - .github/workflows/goat-round-preview.yml
       - tools/verify_release.py

@@ -249,8 +249,12 @@ def private_context_check(summary):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--live", action="store_true")
+    parser.add_argument("--editorial-only", action="store_true",
+                        help="Confere somente os cargos originais; a parte visual exige evidência separada.")
     parser.add_argument("--output", type=Path, default=Path("/tmp/goat-release-verification"))
     args = parser.parse_args()
+    if args.editorial_only and (not args.live or os.environ.get("GITHUB_REF") != "refs/heads/main"):
+        parser.error("A conferência editorial isolada exige --live e a branch main autenticada")
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     summary = {"ok": False, "live_requested": args.live,
@@ -258,7 +262,8 @@ def main():
         "commit": os.environ.get("GITHUB_SHA"), "branch": os.environ.get("GITHUB_REF_NAME"),
         "skill_sha256": digest((SKILL / "SKILL.md").read_bytes()),
         "provider_calls": [], "supabase_writes": 0, "new_visual_generations": 0, "stages": {}, "failures": [],
-        "scope": "Renderização real + provedores reais. Aprovação técnica não publica artes nem ativa produção."}
+        "scope": ("Conferência editorial autêntica isolada; a liberação completa exige também evidência visual anterior."
+                  if args.editorial_only else "Renderização real + provedores reais. Aprovação técnica não publica artes nem ativa produção.")}
 
     def renderer_check():
         renderer = verify_renderer(output / "renderer")
@@ -266,7 +271,11 @@ def main():
                                "source_files_verified": renderer["source_files_verified"]}
 
     checks = [("renderer", renderer_check)]
-    if args.live:
+    if args.editorial_only:
+        checks = [("original_agents", lambda: private_context_check(summary))]
+        for stage in ("renderer", "magnific", "designer"):
+            summary[stage] = {"status": "not_run_editorial_only"}
+    elif args.live:
         checks.extend([
             ("magnific", lambda: magnific_check(summary)),
             ("designer", lambda: designer_check(output, summary)),
