@@ -15,11 +15,14 @@ Regras (as mesmas da skill canal-goat-artes e das lições do Gestor):
 Uso local (prévia): python3 tools/agenda.py dados.json saida.png
   dados.json = {"dia": "2026-11-28", "transmissoes": [...], "rodizio": [...]}
 """
-import json, re, sys, unicodedata
+import json, os, re, sys, unicodedata, hashlib
 from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from tools.photo_policy import biblioteca_verified, photo_digest
+from tools.openrouter_adapter import gerar_json, ProviderUnavailable
 DIAS = ["SEGUNDA-FEIRA", "TERÇA-FEIRA", "QUARTA-FEIRA", "QUINTA-FEIRA", "SEXTA-FEIRA", "SÁBADO", "DOMINGO"]
 DIAS_CURTOS = ["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"]
 MESES = ["JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO", "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"]
@@ -57,21 +60,7 @@ def palavras_time(nome):
 
 
 def biblioteca():
-    fotos = []
-    for meta in sorted((ROOT / "fotos").glob("*/meta.json")):
-        try:
-            m = json.loads(meta.read_text(encoding="utf-8"))
-        except Exception:
-            continue
-        for f in m.get("fotos", []):
-            if not f.get("ok") or f.get("baixa_resolucao"):
-                continue
-            arq = meta.parent / f["arquivo"]
-            if not arq.exists():
-                continue
-            texto = "-".join(norm(f.get(k, "")) for k in ("rotulo", "pagina", "credito"))
-            fotos.append({"arquivo": str(arq.relative_to(ROOT)), "texto": texto, "largura": f.get("largura", 0)})
-    return fotos
+    return biblioteca_verified(ROOT)
 
 
 def _bate(palavras, texto):
@@ -85,7 +74,7 @@ def candidatas(confronto, fotos, usadas, n=4):
     b = palavras_time(partes[1]) if len(partes) > 1 else set()
     notas = []
     for f in fotos:
-        if f["arquivo"] in usadas:
+        if f["arquivo"] in usadas or f["sha256"] in usadas:
             continue
         nota = (3 if _bate(a, f["texto"]) else 0) + (2 if _bate(b, f["texto"]) else 0)
         if nota >= 2:
@@ -104,50 +93,52 @@ def _miniatura(arquivo, lado=512):
 
 
 def escolher_foto(confronto, campeonato, cands):
-    sys.path.insert(0, str(ROOT / "tools"))
-    """Gemini olha as candidatas e escolhe a melhor para o card (ou nenhuma).
-    Sem GEMINI_API_KEY, fica com a primeira da biblioteca."""
-    import os
+    """Revisão visual gratuita obrigatória. Falha ou ausência nunca escolhe a primeira foto."""
     if not cands:
-        return None, "sem foto na biblioteca"
-    if not os.environ.get("GEMINI_API_KEY"):
-        return cands[0], "biblioteca (sem revisão do Gemini)"
-    sys.path.insert(0, str(ROOT / "tools"))
-    import gemini
+        return None, "sem foto verificada na biblioteca"
+    if not os.environ.get("OPENROUTER_API_KEY"):
+        return None, "revisão indisponível: OpenRouter gratuito não configurado"
     partes = []
-    for i, c in enumerate(cands, 1):
-        partes += [{"text": f"Foto {i}:"}, _miniatura(c)]
-    partes.append({"text": f"""Você é designer do Canal GOAT. Escolha a foto para o card da agenda do jogo {confronto} ({campeonato}).
-O card mostra a foto numa faixa horizontal estreita à direita (corte largo e baixo, centrado no rosto principal).
-O jogador em destaque precisa estar grande, de frente e com o rosto visível; goleiro de costas, árbitro, torcida ou foto aberta demais não servem.
-Reprove fotos com placar, texto, gráfico, logo de arte pronta, marca d'água, de outro clube que não seja um dos dois do jogo,
-ou que não sejam de futebol/jogadores. Prefira lance de jogo ou comemoração com jogadores do time da casa (o primeiro), rosto visível.
-Responda só ```json {{"foto": <número ou 0 se nenhuma serve>, "motivo": "curto"}}```"""})
+    for i, path in enumerate(cands, 1):
+        partes += [{"text": f"Foto candidata {i}:"}, _miniatura(path, 768)]
+    partes.append({"text": f"""Você revisa fotos do Canal GOAT. Escolha uma foto para {confronto} ({campeonato}).
+O card usa uma faixa horizontal de 382×111px à direita, rosto principal visível e desobstruído.
+Reprove fotos de costas, árbitro/torcida, fotografia aberta demais, placar, texto ou gráfico incorporado,
+arte pronta, marca d'água, clube diferente dos dois informados ou outra modalidade.
+Nunca redesenhe pessoas, uniformes, escudos ou patrocinadores. Nunca remova marcas d'água.
+Use somente as imagens fornecidas. Incerteza significa reprovação.
+Retorne JSON {{"ok": true/false, "foto": número de 1 a {len(cands)} ou 0 se reprovou todas, "motivo": "curto"}}.
+Não basta a foto estar disponível: você precisa realmente avaliá-la."""})
     try:
-        r = gemini.json_de(gemini.gerar(partes, temp=0.1))
-        n = int(r.get("foto") or 0)
-        if 1 <= n <= len(cands):
-            return cands[n - 1], f"Gemini: {r.get('motivo', '')}"
-        return None, f"Gemini reprovou as {len(cands)} candidatas: {r.get('motivo', '')}"
-    except Exception as e:
-        return cands[0], f"biblioteca (Gemini indisponível: {str(e)[:80]})"
+        def valid(response):
+            return (type(response.get("ok")) is bool and type(response.get("foto")) is int
+                    and 0 <= response["foto"] <= len(cands) and isinstance(response.get("motivo"), str))
+        response = gerar_json(partes, validator=valid, temp=0.1)
+        number = response["foto"]
+        if response["ok"] is True and 1 <= number <= len(cands):
+            return cands[number - 1], f"revisão visual: {response['motivo']}"
+        return None, f"revisão reprovou as {len(cands)} candidatas: {response['motivo']}"
+    except (ProviderUnavailable, ValueError, TypeError, KeyError, OSError):
+        return None, "revisão indisponível: nenhuma foto liberada"
 
 
-def foco(arquivo, altura=160):
-    """Enquadra o rosto principal no card (área da foto 422 x altura do card); sem rosto, o terço de cima."""
+def foco(arquivo, altura=111):
+    """Enquadra o rosto principal no card (área da foto 382 x altura do card); sem rosto, o terço de cima."""
     sys.path.insert(0, str(ROOT / "kit"))
     try:
         from render import foco_rosto
-        f = foco_rosto(ROOT / arquivo, caixa=(422, altura), centro=0.62)
+        f = foco_rosto(ROOT / arquivo, caixa=(382, altura), centro=0.62)
         return "60% 25%" if f == "50% 14%" else f
     except Exception:
         return "60% 25%"
 
 
 def horario(hhmm):
-    h, _, m = str(hhmm).partition(":")
-    h = str(int(h)) if h.isdigit() else h
-    return f"{h}H" if m in ("", "00") else f"{h}H{m}"
+    match = re.fullmatch(r"(\d{1,2})(?::(\d{2})(?::\d{2})?)?", str(hhmm or ""))
+    if not match or int(match[1]) > 23 or int(match[2] or 0) > 59:
+        raise ValueError("Transmissão sem horário válido: revisar agenda cadastrada")
+    hour, minute = int(match[1]), int(match[2] or 0)
+    return f"{hour}H" + (f"{minute:02d}" if minute else "")
 
 
 def escolher_equipe(participantes, rodizio, ja_usados):
@@ -167,18 +158,28 @@ def escolher_equipe(participantes, rodizio, ja_usados):
     return nomes[0]["nome"] if nomes else None
 
 
-def montar(dia, transmissoes, rodizio):
+def _foto_escalado(nome, usadas):
+    """Escolha determinística de foto real da equipe, sem repetir os bytes no mesmo dia."""
+    key = hashlib.sha256(norm(nome).encode()).hexdigest()[:16]
+    for path in sorted((ROOT / "equipe" / "private").glob(f"{key}-*.jpg")):
+        digest = photo_digest(path)
+        if digest not in usadas:
+            return "equipe:" + path.name, digest
+    return None, None
+
+
+def montar(dia, transmissoes, rodizio, used_photo_hashes=None, used_photo_files=None, used_photo_urls=None):
     d = date.fromisoformat(dia)
-    fotos = biblioteca()
+    known_urls = set(used_photo_urls or ())
+    fotos = [f for f in biblioteca() if f.get("url_imagem") not in known_urls and f.get("pagina") not in known_urls]
     n_cards = len([t for t in transmissoes if (t.get("kind") or "").lower() != "outro"])
-    # mesma conta do kit (render.agenda) para a altura de cada card
-    k = min(1.0, (850 - (n_cards - 1) * 20) / (n_cards * 160)) if n_cards else 1.0
-    altura_card = int(160 * k)
-    usadas, equipe_usada, jogos, pendencias = set(), set(), [], []
+    usadas, equipe_usada, jogos, pendencias = set(used_photo_hashes or ()) | set(used_photo_files or ()), set(), [], []
+    if n_cards == 0:
+        pendencias.append("Nenhuma transmissão válida cadastrada")
     for t in sorted(transmissoes, key=lambda x: x.get("time") or ""):
         kind = (t.get("kind") or "").lower()
         if kind == "outro":
-            continue  # narração/apoio do mesmo jogo: não vira card
+            continue
         titulo = str(t.get("title") or "").upper()
         comp = str(t.get("competition") or "").upper()
         if kind == "programa":
@@ -186,31 +187,35 @@ def montar(dia, transmissoes, rodizio):
             rotulo = f"PROGRAMA · PRÉ-JOGO DE {sobre}" if " X " in sobre else "PROGRAMA"
             card = {"rotulo": rotulo, "horario": horario(t.get("time")), "confronto": nome or comp}
             pessoa = escolher_equipe(t.get("participantes"), rodizio, equipe_usada)
-            if pessoa:
-                card["foto"] = f"equipe:{pessoa}"
-                card["broadcast_id"] = t.get("id")
+            foto, digest = _foto_escalado(pessoa, usadas) if pessoa else (None, None)
+            if foto:
+                card.update(foto=foto, broadcast_id=t.get("id"), equipe_nome=pessoa)
                 equipe_usada.add(pessoa)
+                usadas.add(digest)
+            else:
+                pendencias.append(f"Programa {nome or comp}: falta foto real da pessoa escalada")
             jogos.append(card)
             continue
         confronto = re.sub(r"\s*\(.*?\)", "", titulo).strip()
         card = {"rotulo": comp, "horario": horario(t.get("time")), "confronto": confronto}
         foto, motivo = escolher_foto(confronto, comp, candidatas(confronto, fotos, usadas))
-        if not foto and __import__("os").environ.get("GEMINI_API_KEY"):
-            # nada bom na biblioteca: busca no site oficial dos clubes (casa primeiro)
-            import fotos_oficiais
+        if not foto and os.environ.get("OPENROUTER_API_KEY") and "indisponível" not in motivo:
+            from tools import fotos_oficiais
             for time_ in [p.strip() for p in re.split(r"\s+X\s+", confronto, maxsplit=1)]:
-                novas = [n for n in fotos_oficiais.buscar(time_, comp, f"{confronto} · {time_}") if n not in usadas]
+                fresh = set(fotos_oficiais.buscar(time_, comp, f"{confronto} · {time_}"))
+                novas = [item["arquivo"] for item in biblioteca()
+                         if item["arquivo"] in fresh and item["sha256"] not in usadas
+                         and item.get("url_imagem") not in known_urls and item.get("pagina") not in known_urls]
                 if novas:
                     foto, motivo = escolher_foto(confronto, comp, novas[:4])
-                    if foto:
-                        motivo = f"site oficial · {motivo}"
+                    if foto or "indisponível" in motivo:
                         break
         print(f"  {confronto}: {foto or '-'} ({motivo})", file=sys.stderr, flush=True)
         if foto:
-            usadas.add(foto)
-            card["foto"], card["foco"] = foto, foco(foto, altura_card)
+            usadas.update((foto, photo_digest(ROOT / foto)))
+            card["foto"], card["foco"] = foto, foco(foto, 111)
         else:
-            pendencias.append(confronto)
+            pendencias.append(f"{confronto}: {motivo}")
         jogos.append(card)
     spec = {"tipo": "agenda", "jogos": jogos, "marca": "logo",
             "data_dia_semana": DIAS[d.weekday()], "data_resto": f"{d.day} DE {MESES[d.month - 1]}"}
@@ -223,6 +228,7 @@ def spec_para_kit(spec):
     s = json.loads(json.dumps(spec))
     for j in s.get("jogos", []):
         j.pop("broadcast_id", None)
+        j.pop("equipe_nome", None)
     return s
 
 
@@ -233,7 +239,7 @@ if __name__ == "__main__":
     print(json.dumps(spec, ensure_ascii=False, indent=1))
     if pend:
         print("SEM FOTO NA BIBLIOTECA:", pend)
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 2 and not pend:
         sys.path.insert(0, str(ROOT / "kit"))
         import render
         s = spec_para_kit(spec)

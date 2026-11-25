@@ -1,0 +1,7 @@
+{
+  "enabled": false,
+  "visual_provider": "magnific",
+  "editorial_provider": "openrouter_free",
+  "max_designers_per_round": 3,
+  "human_approval_required": true
+}

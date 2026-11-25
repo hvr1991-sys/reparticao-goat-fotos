@@ -1,0 +1,96 @@
+{
+  "source": "canal-goat-artes(1).zip",
+  "source_sha256": "ea73eb0d4cc23d31312eba4e4f9fb329acc56a2a85a2c35f0c171a751f1b624d",
+  "files": [
+    {
+      "path": "SKILL.md",
+      "bytes": 7953,
+      "sha256": "d43b7f5b2dbe3ac8433d0848932c661856a73f6dcfbbd1a90cd259e7fd6caf11"
+    },
+    {
+      "path": "arquivos/bodinho.png",
+      "bytes": 56200,
+      "sha256": "b4d691d35a0f828442029574f4f5e62525e9a42cfccb35c209a5e2ea6583e417"
+    },
+    {
+      "path": "arquivos/fontes/BarlowCondensed-300.ttf",
+      "bytes": 31944,
+      "sha256": "09028878ee0a51fe1da2eef23641ecd2c942b0fa6556cd70e7793c6a68f4a0a1"
+    },
+    {
+      "path": "arquivos/fontes/BarlowCondensed-500.ttf",
+      "bytes": 31884,
+      "sha256": "acf90c43908e8999a53458cb79dd51b943010cae298e409234c36d2b18383f92"
+    },
+    {
+      "path": "arquivos/fontes/BarlowCondensed-600.ttf",
+      "bytes": 33600,
+      "sha256": "d858fddaf472586325aa34375c090cfa6649a5feaa69a5b589ae2f716f3bd978"
+    },
+    {
+      "path": "arquivos/fontes/BarlowCondensed-700.ttf",
+      "bytes": 33496,
+      "sha256": "c7775662d9e59c4eddd9b84cdc80d226a5e83837c50fd6411fc9f60558d63718"
+    },
+    {
+      "path": "arquivos/fontes/InterTight-400.woff2",
+      "bytes": 22016,
+      "sha256": "6f32da94d4f26e98cb6ccd97034d306aa38945322c816f54a93c7d15dc0905b8"
+    },
+    {
+      "path": "arquivos/fontes/InterTight-500.woff2",
+      "bytes": 22616,
+      "sha256": "6c0019f88d5bc179f2c972998ed8c14e779254566da9081c5e29f364a0a0aeb6"
+    },
+    {
+      "path": "arquivos/fontes/InterTight-700.woff2",
+      "bytes": 22748,
+      "sha256": "9c4f02f38678f2628292d66c4f7a1a6a06af7ffac4d279359b09074e7d0f1fe0"
+    },
+    {
+      "path": "arquivos/fontes/InterTight-800.woff2",
+      "bytes": 22696,
+      "sha256": "b4b4a0877ce8d65c2c194dec15236e4861d3b3c111b3aa3d54fc4efbe6171027"
+    },
+    {
+      "path": "arquivos/fundo-estadio-pb.png",
+      "bytes": 328016,
+      "sha256": "94ed3ff193950b7fe20263cad20f79de9b766efda2beeb24f2c927234b2c8bdc"
+    },
+    {
+      "path": "arquivos/logo-goat-amarelo.png",
+      "bytes": 33414,
+      "sha256": "64035bde7fda802c4431d684e4a7ceab76de5c1d440ebbac201fe2c7fe5cb42f"
+    },
+    {
+      "path": "arquivos/modelo-agenda-do-dia.png",
+      "bytes": 1336870,
+      "sha256": "461665f3ab7487b3a4d1d59789dc9938b02668811edc3f817427c7b3d2c8d5e9"
+    },
+    {
+      "path": "arquivos/modelo-agenda-jogo-unico.png",
+      "bytes": 1070638,
+      "sha256": "93b7ab5705af55b8f525772aef9b11fa93b3671cba4c943bf2dc481b9b0914fb"
+    },
+    {
+      "path": "arquivos/modelo-header-youtube.png",
+      "bytes": 4430133,
+      "sha256": "67462dde4a6509600b94037fc8458cbe91c1ba4c9a1988b72040e89bf5153208"
+    },
+    {
+      "path": "arquivos/modelo-tarja-aspas-tela-cheia.png",
+      "bytes": 2496996,
+      "sha256": "512a777536d905389d4b4aa1aeaf8cd64d28f4841cec4a5973f2c2ee9ac02260"
+    },
+    {
+      "path": "arquivos/modelo-tarja-aspas-tela-dividida.png",
+      "bytes": 1914706,
+      "sha256": "83259cf26f939d883b9a9eacc3b1abe6843daf4017ee2c8c2045760b3703de91"
+    },
+    {
+      "path": "arquivos/modelo-tarja-para-videos.png",
+      "bytes": 2045023,
+      "sha256": "d4372ff46102f388d246f0efd82cd829e24b21604bfcc7ef03f7bc1b2e6f4cff"
+    }
+  ]
+}

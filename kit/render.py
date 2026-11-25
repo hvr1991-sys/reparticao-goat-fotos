@@ -10,12 +10,15 @@ O spec.json define a peça ("tipo") e os dados. Tudo o que é texto entra como
 tipografia real (nunca dentro da imagem). Fotos passam pelo preset
 GOAT_SPORTS_EDITORIAL antes de entrar na arte e não são redesenhadas.
 
-Tipos: agenda, jogo_unico, manchete, chamada, estatisticas.
+Tipos: agenda, jogo_unico, manchete, chamada, estatisticas,
+tarja_video, tarja_aspas, tarja_aspas_dividida.
 """
-import base64, html, io, json, os, re, sys
+import base64, html, io, json, os, re, sys, shutil
 from pathlib import Path
 
 KIT = Path(__file__).resolve().parent
+SKILL = KIT / "skill-original"
+ASSETS = SKILL / "arquivos"
 Y = "#FFD318"          # amarelo oficial, sempre este
 BLACK = "#08080A"
 SURF1, SURF2 = "#121214", "#141416"
@@ -36,29 +39,25 @@ FONT = "GOAT Sans"  # Barlow Condensed em todas as artes (padrão dos modelos do
 
 
 def fonts_css():
-    f = KIT / "fonts"
-    faces = [("BarlowCondensed-Regular.woff2", (300, 400), "woff2"), ("BarlowCondensed-Medium.ttf", (500,), "truetype"),
-             ("BarlowCondensed-SemiBold.woff2", (600,), "woff2"), ("BarlowCondensed-Bold.woff2", (700, 800), "woff2")]
+    # Fontes reais do pacote original: peso 300 não é uma Regular renomeada.
+    f = ASSETS / "fontes"
+    faces = [(FONT, f / f"BarlowCondensed-{wt}.ttf", wt, "truetype") for wt in (300, 500, 600, 700)]
+    faces += [(FONT, KIT / "fonts" / "BarlowCondensed-Regular.woff2", 400, "woff2")]
+    faces += [("GOAT Inter", f / f"InterTight-{wt}.woff2", wt, "woff2") for wt in (400, 500, 700, 800)]
     out = []
-    for name, pesos, fmt in faces:
+    for family, path, wt, fmt in faces:
         mime = "font/woff2" if fmt == "woff2" else "font/ttf"
-        uri = data_uri(f / name, mime)
-        for wt in pesos:
-            out.append(f"@font-face{{font-family:'{FONT}';font-weight:{wt};src:url({uri}) format('{fmt}');}}")
+        uri = data_uri(path, mime)
+        out.append(f"@font-face{{font-family:'{family}';font-weight:{wt};src:url({uri}) format('{fmt}');}}")
     return "\n".join(out)
 
 
 def logo_tag(width, style=""):
-    # Logo ou bodinho: nunca os dois. Por padrão, logo GOAT amarelo.
-    return f'<img src="{data_uri(KIT / "brand" / "logo-goat-amarelo.png", "image/png")}" alt="" style="width:{width}px;{style}">'
+    return f'<img data-goat-logo src="{data_uri(ASSETS / "logo-goat-amarelo.png", "image/png")}" alt="" style="width:{width}px;{style}">'
 
 
 def mark_tag(spec, width, style=""):
-    if spec.get("marca") == "bodinho":
-        p = KIT / "brand" / "bodinho.png"
-        if not p.exists():
-            raise SystemExit("bodinho.png não está no kit: envie o arquivo do bodinho ou use a marca 'logo'.")
-        return f'<img src="{data_uri(p, "image/png")}" alt="" style="width:{width}px;{style}">'
+    # Orientação posterior do Gestor: sempre o logo, inclusive em specs antigos.
     return logo_tag(width, style)
 
 
@@ -95,7 +94,7 @@ def confronto(txt):
 def ilustrativo(spec):
     if not spec.get("ilustrativo"):
         return ""
-    return (f'<div style="position:absolute;top:22px;right:22px;border:2px solid {MUTED};color:{WHITE};'
+    return (f'<div data-qa-text style="position:absolute;top:16px;right:22px;border:2px solid {MUTED};background:{BLACK};color:{WHITE};'
             f'font:600 22px/1 \'GOAT Sans\';letter-spacing:.06em;padding:8px 10px;z-index:9">DADOS ILUSTRATIVOS</div>')
 
 
@@ -107,93 +106,80 @@ html,body{{margin:0;width:{w}px;height:{h}px;overflow:hidden;background:{BLACK}}
 body{{font-family:'GOAT Sans',sans-serif;color:{WHITE};-webkit-font-smoothing:antialiased}}
 .art{{position:relative;width:{w}px;height:{h}px;overflow:hidden;background:{BLACK}}}
 </style></head><body><div class="art">{body}</div>
-<script>document.fonts.ready.then(()=>new Promise(r=>setTimeout(r,30))).then(()=>{{for(const el of document.querySelectorAll('.art div')){{const cs=getComputedStyle(el);if(cs.whiteSpace!=='nowrap'&&!el.classList.contains('fit'))continue;let s=parseFloat(cs.fontSize);while(el.scrollWidth>el.clientWidth+1&&s>14){{s-=1;el.style.fontSize=s+'px';}}}}document.body.dataset.ok=1;}});</script></body></html>"""
+<script>document.fonts.ready.then(()=>new Promise(r=>setTimeout(r,30))).then(()=>{{for(const el of document.querySelectorAll('.art div')){{const cs=getComputedStyle(el);if(cs.whiteSpace!=='nowrap'&&!el.classList.contains('fit'))continue;let s=parseFloat(cs.fontSize);const min=Number(el.dataset.minFont||14);while(el.scrollWidth>el.clientWidth+1&&s>min){{s-=1;el.style.fontSize=s+'px';}}}}document.body.dataset.ok=1;}});</script></body></html>"""
 
 
 # ---------------- peças ----------------
 
 def agenda(spec):
-    """Agenda do dia (feed 1080x1350), conforme a skill."""
+    """Agenda 1080×1350: medidas e hierarquia do arquivo original da skill."""
     jogos = spec["jogos"]
     dia, resto = spec["data_dia_semana"].upper(), spec["data_resto"].upper()
-    fundo = spec.get("fundo")
-    if fundo:
-        bg = f'<img src="{editorial(fundo)}" alt="" style="position:absolute;inset:-40px;width:calc(100% + 80px);height:calc(100% + 80px);object-fit:cover;filter:blur(18px) brightness(.28) saturate(.8)">'
-    else:
-        bg = ('<div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 45% at 50% 18%,rgba(255,255,255,.07),transparent 70%),'
-              f'radial-gradient(ellipse 120% 60% at 50% 110%,rgba(255,211,24,.05),transparent 60%),{BLACK}"></div>')
+    fundo = spec.get("fundo") or ASSETS / "fundo-estadio-pb.png"
+    bg = (f'<img src="{editorial(fundo)}" alt="" style="position:absolute;inset:-40px;width:calc(100% + 80px);height:calc(100% + 80px);object-fit:cover;filter:blur(22px) brightness(.16) saturate(0)">'
+          f'<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,8,10,.25),rgba(8,8,10,.5) 65%,{BLACK})"></div>')
     n = len(jogos)
-    # informações da transmissão 50% maiores (pedido do Gestor); com muitos jogos, tudo encolhe junto para caber
-    top_area, bottom_area = 320, H - 180  # entre a data e o logo
-    gap = 20
-    k = min(1.0, ((bottom_area - top_area) - (n - 1) * gap) / (n * 111)) if n else 1.0
-    card_h = int(111 * k)
-    # horário no tamanho de sempre; rótulo e confronto maiores, com espaço para a foto à direita
-    f_hora, f_rot, f_tit = int(46 * max(k, .8)), int(24 * k), int(41 * k)
+    if not 1 <= n <= 6:
+        raise ValueError("A agenda comporta de 1 a 6 cards de 910×111. Divida mais transmissões em outra página.")
+    # Preservar os 111px: reduzir apenas o intervalo quando a agenda é mais cheia.
+    top_area, bottom_area, card_h = 405, 1110, 111
+    gap = min(50, (bottom_area - top_area - n * card_h) / (n - 1)) if n > 1 else 0
     total = n * card_h + (n - 1) * gap
-    y0 = top_area + max(0, ((bottom_area - top_area) - total) // 2)
+    y0 = top_area + (bottom_area - top_area - total) / 2
     cards = []
     for i, j in enumerate(jogos):
         y = y0 + i * (card_h + gap)
         foto = j.get("foto")
         foto_html = ""
         if foto:
-            foto_html = (f'<div style="position:absolute;right:0;top:0;bottom:0;width:42%;overflow:hidden;border-radius:0 16px 16px 0">'
+            foto_html = (f'<div data-photo-panel style="position:absolute;right:0;top:0;bottom:0;width:42%;overflow:hidden;border-radius:0 16px 16px 0">'
                          f'<img src="{editorial(foto)}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{esc(j.get("foco","70% 25%"))}">'
-                         f'<div style="position:absolute;inset:0;background:linear-gradient(90deg,{SURF2} 0%,rgba(20,20,22,.85) 18%,rgba(20,20,22,.35) 55%,rgba(20,20,22,0) 85%)"></div></div>')
-        conf = str(j.get("confronto", "")).upper()
-        estilo = f"font:700 {f_tit}px/1.04 'GOAT Sans';color:{WHITE};text-transform:uppercase;white-space:nowrap;overflow:hidden"
-        if foto and " X " in conf:
-            # com foto: um time por linha ("TIME A X" / "TIME B"), sem cortar nem reticências
-            a_, b_ = conf.split(" X ", 1)
-            tit_html = (f'<div style="{estilo}">{esc(a_)} <span style="color:{Y}">X</span></div>'
-                        f'<div style="{estilo}">{esc(b_)}</div>')
-        else:
-            tit_html = f'<div style="{estilo}">{confronto(conf) if " X " in conf else esc(conf)}</div>'
+                         f'<div style="position:absolute;inset:0;background:linear-gradient(90deg,{SURF2} 0%,rgba(20,20,22,.85) 18%,rgba(20,20,22,.25) 55%,rgba(20,20,22,0) 85%)"></div></div>')
+        # Texto fica antes do rosto, com espaço sobre a extremidade escura do degradê.
+        right = "34%" if foto else "30px"
         cards.append(f"""
-<div style="position:absolute;left:{(W-910)//2}px;top:{y}px;width:910px;height:{card_h}px;border-radius:16px;overflow:hidden;
- background:linear-gradient(180deg,{SURF2},{SURF1});box-shadow:inset 0 0 0 1px rgba(245,245,242,.06)">
+<div data-agenda-card style="position:absolute;left:85px;top:{y:.1f}px;width:910px;height:111px;border-radius:16px;overflow:hidden;
+ background:linear-gradient(180deg,{SURF2},{SURF1});box-shadow:inset 0 0 0 1px rgba(245,245,242,.04)">
  <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:{Y}"></div>
  {foto_html}
- <div style="position:absolute;left:30px;top:0;bottom:0;width:{int(150*k)}px;display:flex;align-items:center;font:600 {f_hora}px/1 'GOAT Sans';color:{WHITE};text-transform:uppercase;white-space:nowrap">{esc(j["horario"]).upper()}</div>
- <div style="position:absolute;left:{int(30+160*k)}px;top:{int(28*k)}px;bottom:{int(28*k)}px;width:1px;background:rgba(245,245,242,.22)"></div>
- <div style="position:absolute;left:{int(30+160*k)+24}px;right:{'42%' if foto else '30px'};top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:{int(6*k)}px">
-  <div style="font:600 {f_rot}px/1.05 'GOAT Sans';letter-spacing:.04em;color:{Y};text-transform:uppercase;white-space:nowrap;overflow:hidden">{esc(j["rotulo"])}</div>
-  {tit_html}
+ <div data-qa-text data-min-font="28" style="position:absolute;left:23px;top:0;bottom:0;width:117px;display:flex;align-items:center;justify-content:center;font:600 42px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap">{esc(j["horario"]).upper()}</div>
+ <div style="position:absolute;left:151px;top:32px;bottom:32px;width:1px;background:rgba(245,245,242,.16)"></div>
+ <div data-agenda-copy style="position:absolute;left:176px;right:{right};top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:7px">
+  <div data-qa-text data-min-font="13" style="font:600 16px/1.1 'GOAT Sans';letter-spacing:.22em;color:{Y};text-transform:uppercase;white-space:nowrap">{esc(j["rotulo"])}</div>
+  <div data-qa-text data-min-font="24" style="font:700 32px/1.1 'GOAT Sans';color:{WHITE};text-transform:uppercase;white-space:nowrap">{confronto(j.get("confronto", ""))}</div>
  </div>
 </div>""")
     body = f"""{bg}{ilustrativo(spec)}
-<div style="position:absolute;top:118px;left:0;right:0;text-align:center;font:700 96px/1 'GOAT Sans';letter-spacing:.01em">AGENDA <span style="font-weight:300">DO DIA</span></div>
-<div style="position:absolute;top:248px;left:0;right:0;text-align:center;font:600 32px/1 'GOAT Sans';letter-spacing:.06em;color:rgba(245,245,242,.78)"><span style="color:{Y}">{esc(dia)}</span> {esc(resto)}</div>
+<div data-qa-text style="position:absolute;top:174px;left:64px;right:64px;text-align:center;font:700 96px/1 'GOAT Sans';white-space:nowrap">AGENDA <span style="font-weight:300">DO DIA</span></div>
+<div data-qa-text data-min-font="24" style="position:absolute;top:295px;left:64px;right:64px;text-align:center;font:600 30px/1 'GOAT Sans';letter-spacing:.22em;color:{MUTED};white-space:nowrap"><span style="color:{Y}">{esc(dia)}</span> {esc(resto)}</div>
 {''.join(cards)}
-<div style="position:absolute;bottom:72px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 150)}</div>"""
+<div style="position:absolute;bottom:94px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 150)}</div>"""
+    if int(spec.get("total_paginas", 1)) > 1:
+        body += f'<div data-qa-text style="position:absolute;bottom:34px;left:0;right:0;text-align:center;color:{MUTED};font:500 22px/1 \'GOAT Sans\'">{int(spec.get("pagina", 1))} / {int(spec["total_paginas"])}</div>'
     return page(body)
 
 
 def jogo_unico(spec):
-    """Agenda de jogo único — segue o modelo do Gestor (modelos/jogo-unico/MODELO_AGENDA_JOGO_UNICO_2.png):
-    foto inteira escurecida; topo: "AGENDA DO DIA" à esquerda e a data espaçada à direita;
-    base: campeonato espaçado e, logo abaixo, "21H | TIME A X TIME B" grande (hora e X em amarelo); logo centralizado."""
+    """Foto real dominante, data discreta e uma única linha de confronto na base."""
     foto = editorial(spec["foto"])
     data_txt = esc(str(spec.get("data_resto") or spec.get("data") or "").upper())
+    size = min(150, max(44, int(spec.get("tamanho_titulo", 116) or 116)))
+    dy = int(spec.get("deslocar_y", 0) or 0)
     body = f"""<img src="{foto}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:{esc(spec.get('foco','50% 30%'))};filter:brightness(.78)">
-<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 16%,rgba(0,0,0,0) 52%,rgba(0,0,0,.72) 70%,rgba(0,0,0,.97) 86%,#000 100%)"></div>
+<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(8,8,10,.45) 0%,rgba(8,8,10,0) 16%,rgba(8,8,10,0) 52%,rgba(8,8,10,.72) 70%,rgba(8,8,10,.97) 86%,{BLACK} 100%)"></div>
 {ilustrativo(spec)}
-<div style="position:absolute;top:56px;left:54px;font:700 40px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap">AGENDA <span style="font-weight:400">DO DIA</span></div>
-<div style="position:absolute;top:62px;right:24px;font:600 30px/1 'GOAT Sans';letter-spacing:.3em;color:rgba(245,245,242,.85);text-transform:uppercase;white-space:nowrap">{data_txt}</div>
-<div style="position:absolute;left:0;right:0;top:{982 - int(spec.get('deslocar_y', 0) or 0)}px;text-align:center">
- <div id="bloco" style="display:inline-block;text-align:left;max-width:960px">
-  <div style="font:500 28px/1 'GOAT Sans';letter-spacing:.3em;color:rgba(245,245,242,.82);text-transform:uppercase;white-space:nowrap;margin-bottom:22px">{esc(spec['campeonato'])}</div>
-  <div id="linha" style="font:600 {int(spec.get('tamanho_titulo', 136) or 136)}px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap;letter-spacing:-.01em"><span style="color:{Y}">{esc(spec['horario']).upper()}</span> <span style="font-weight:500;color:{WHITE}">|</span> {confronto(spec['confronto'])}</div>
- </div>
+<div data-qa-text style="position:absolute;top:62px;left:54px;width:350px;font:700 36px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap">AGENDA <span style="font-weight:300">DO DIA</span></div>
+<div data-qa-text data-min-font="22" style="position:absolute;top:66px;right:24px;width:535px;text-align:right;font:600 30px/1 'GOAT Sans';letter-spacing:.3em;color:{MUTED};text-transform:uppercase;white-space:nowrap">{data_txt}</div>
+<div data-qa-box style="position:absolute;left:60px;right:60px;top:{1000 - dy}px;text-align:left">
+ <div data-qa-text data-min-font="20" style="font:500 28px/1 'GOAT Sans';letter-spacing:.3em;color:{Y};text-transform:uppercase;white-space:nowrap;margin-bottom:18px">{esc(spec['campeonato'])}</div>
+ <div data-qa-text data-min-font="44" style="font:600 {size}px/1 'GOAT Sans';text-transform:uppercase;white-space:nowrap;letter-spacing:-.01em"><span style="color:{Y}">{esc(spec['horario']).upper()}</span> <span style="font-weight:500;color:{WHITE}">|</span> {confronto(spec['confronto'])}</div>
 </div>
-<div style="position:absolute;top:1180px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 140)}</div>
-<script>document.fonts.ready.then(()=>{{const l=document.getElementById('linha');let s={int(spec.get('tamanho_titulo', 136) or 136)};while(l.scrollWidth>960&&s>44){{s-=2;l.style.fontSize=s+'px';}}}});</script>"""
+<div style="position:absolute;bottom:94px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 150)}</div>"""
     return page(body)
 
 def _alinhamento(spec):
     a = str(spec.get("alinhamento", "centro")).lower()
-    return {"esquerda": "left", "direita": "right"}.get(a, "center")
+    return {"esquerda": "left", "direita": "right", "left": "left", "right": "right", "centro": "center", "center": "center"}.get(a, "center")
 
 
 def _degrade_lateral(al):
@@ -228,7 +214,8 @@ def _titulo_duas_cores(linhas):
     # linhas: [{"texto":..., "amarelo":bool}]
     if isinstance(linhas, str):
         linhas = [{"texto": linhas}]
-    return "".join(f'<div style="color:{Y if l.get("amarelo") else WHITE};white-space:nowrap">{esc(str(l["texto"]).upper())}</div>' for l in linhas)
+    linhas = [{"texto": l} if isinstance(l, str) else l for l in linhas]
+    return "".join(f'<div data-qa-text data-min-font="34" style="color:{Y if l.get("amarelo") else WHITE};white-space:nowrap">{esc(str(l["texto"]).upper())}</div>' for l in linhas)
 
 
 def _linha_jogo(j, tam=64):
@@ -240,15 +227,20 @@ def _linha_jogo(j, tam=64):
 
 
 def _post(spec, meio=""):
-    """Layout único dos posts do feed (manchete, chamada, estatísticas), no espírito do modelo de jogo único:
-    foto inteira; tudo empilhado e ancorado na BASE (nunca no meio da foto, nunca sobre rostos):
-    sobretítulo → título curto grande → apoio → [meio: números] → linha do jogo em destaque. Marca pequena no topo."""
+    """Posts com liberdade de posição: o bloco pode ocupar uma área segura definida no briefing.
+
+    layout={x, y, largura} posiciona o bloco; sem layout, preserva a base original.
+    O planejamento/revisão deve escolher a área sem cobrir rostos ou a jogada.
+    """
     foto = spec.get("foto")
     al = _alinhamento(spec)
     if foto:
         bg = (f'<img src="{editorial(foto)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:{esc(spec.get("foco","50% 25%"))};filter:brightness(.85)">'
               '<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.45) 0%,rgba(0,0,0,0) 14%,rgba(0,0,0,0) 40%,rgba(0,0,0,.78) 60%,rgba(0,0,0,.96) 78%,#000 100%)"></div>'
               + (_degrade_lateral(al) if al != "center" else ""))
+    elif spec.get("fundo"):
+        bg = (f'<img src="{editorial(spec["fundo"])}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
+              f'<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,8,10,.08),rgba(8,8,10,.72) 80%,{BLACK})"></div>')
     else:
         bg = f'<div style="position:absolute;inset:0;background:radial-gradient(ellipse 90% 60% at 50% 30%,#1c1c1f,{BLACK} 70%)"></div>'
     j = spec.get("jogo")
@@ -259,9 +251,17 @@ def _post(spec, meio=""):
     jogo = f'<div style="margin-top:22px;padding-top:18px;border-top:2px solid rgba(255,211,24,.55)">{_linha_jogo(j)}</div>' if j else ""
     largura = "max-width:960px" if al == "center" else "width:900px"
     lado = {"center": "left:0;right:0;text-align:center", "left": "left:60px;text-align:left", "right": "right:60px;text-align:right"}[al]
+    posicao = f'bottom:{70 + int(spec.get("deslocar_y", 0) or 0)}px;{lado}'
+    layout = spec.get("layout")
+    if layout:
+        x, y, width = int(layout["x"]), int(layout["y"]), int(layout["largura"])
+        if not (32 <= x and 48 <= y and 320 <= width <= W - 64 and x + width <= W - 32):
+            raise ValueError("O bloco de texto precisa ficar dentro da área segura da arte.")
+        largura = "width:100%"
+        posicao = f'left:{x}px;top:{y}px;width:{width}px;text-align:{al}'
     body = f"""{bg}{ilustrativo(spec)}
 <div style="position:absolute;top:52px;{'left:0;right:0;display:flex;justify-content:center' if al=='center' else ('right:56px' if al=='left' else 'left:56px')}">{mark_tag(spec, 130)}</div>
-<div style="position:absolute;bottom:{70 + int(spec.get("deslocar_y", 0) or 0)}px;{lado}">
+<div data-qa-box style="position:absolute;{posicao}">
  <div style="display:inline-block;{largura};text-align:{al}">{sobre}{titulo}{apoio}{meio}{jogo}</div>
 </div>"""
     return page(body)
@@ -294,6 +294,49 @@ def estatisticas(spec):
     s2 = dict(spec)
     s2.setdefault("tamanho_titulo", 96)
     return _post(s2, meio)
+
+
+def tarja_video(spec):
+    """Tarjas 9:16 do pacote original, com fotografia real e texto tipográfico."""
+    tipo = spec["tipo"]
+    aspas = tipo != "tarja_video"
+    dividida = tipo == "tarja_aspas_dividida"
+    if dividida:
+        fotos = spec["fotos"]
+        bg = "".join(
+            f'<img src="{editorial(f)}" alt="" style="position:absolute;left:0;top:{i*960}px;width:1080px;height:960px;object-fit:cover;object-position:50% 25%">'
+            for i, f in enumerate(fotos)
+        )
+    else:
+        bg = f'<img src="{editorial(spec["foto"])}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:{esc(spec.get("foco", "50% 25%"))}">'
+    linhas = spec.get("texto") or spec.get("titulo") or []
+    if isinstance(linhas, str):
+        linhas = linhas.split("\n")
+    linhas = [str(l.get("texto", "")) if isinstance(l, dict) else str(l) for l in linhas]
+    if not 1 <= len(linhas) <= 2:
+        raise ValueError("A tarja usa uma ou duas linhas de texto.")
+    width = 1016 if dividida else 820
+    x = (1080 - width) // 2
+    y = int(spec.get("tarja_y", 868 if dividida else 1230))
+    credit = spec.get("credito") or spec.get("contexto")
+    if not (240 <= y <= 1580):
+        raise ValueError("A tarja precisa ficar dentro da área segura do vídeo.")
+    text = "".join(f'<div data-qa-text data-min-font="32" style="font:700 72px/1.04 \'GOAT Sans\';white-space:nowrap">{esc(line.upper())}</div>' for line in linhas)
+    context = f'<div data-qa-text data-min-font="20" style="margin-top:14px;font:600 28px/1.1 \'GOAT Sans\';color:{Y};white-space:nowrap">{esc(str(credit).upper())}</div>' if credit else ""
+    quotes = (f'<span style="position:absolute;left:16px;top:-42px;color:{Y};font:700 128px/1 \'GOAT Sans\'">“</span>'
+              f'<span style="position:absolute;right:14px;bottom:-70px;color:{Y};font:700 128px/1 \'GOAT Sans\'">”</span>') if aspas else ""
+    subtitle = ""
+    if dividida and spec.get("legenda"):
+        sub = spec["legenda"]
+        sub = sub if isinstance(sub, list) else str(sub).split("\n")
+        if len(sub) > 2:
+            raise ValueError("A legenda da tela dividida usa no máximo duas linhas.")
+        subtitle = f'<div style="position:absolute;left:100px;right:100px;bottom:{1920-y+34}px;text-align:center;color:{Y};font:600 34px/1.05 \'GOAT Sans\'">' + "".join(f'<div data-qa-text style="white-space:nowrap">{esc(str(line).upper())}</div>' for line in sub) + '</div>'
+    body = f'''{bg}{ilustrativo(spec)}
+<div style="position:absolute;top:56px;left:56px">{mark_tag(spec, 130)}</div>
+{subtitle}
+<div data-qa-box style="position:absolute;left:{x}px;top:{y}px;width:{width}px;border-radius:16px;background:rgba(8,8,10,.78);border-top:10px solid {Y};padding:28px 46px 30px;text-align:center">{quotes}{text}{context}</div>'''
+    return page(body, 1080, 1920)
 
 
 # ---------- conferência automática (regras do Gestor) ----------
@@ -346,6 +389,15 @@ def conferir(spec):
             programa = " X " not in str(j.get("confronto", "")).upper()
             if not programa and not j.get("foto"):
                 erros.append(f'card da agenda sem foto: {j.get("confronto")} (todo jogo leva foto)')
+        if not 1 <= len(spec.get("jogos") or []) <= 6:
+            erros.append("agenda deve ter de 1 a 6 cards; divida agendas maiores em páginas")
+    if tipo == "jogo_unico" and not all(spec.get(k) for k in ("foto", "campeonato", "horario", "confronto")):
+        erros.append("jogo único exige foto, campeonato, horário e confronto confirmados")
+    if tipo == "tarja_aspas_dividida":
+        if not isinstance(spec.get("fotos"), list) or len(spec["fotos"]) != 2 or not all(spec["fotos"]):
+            erros.append("tarja dividida exige duas fotos identificadas")
+    elif tipo in ("tarja_video", "tarja_aspas") and not spec.get("foto"):
+        erros.append("tarja exige foto identificada")
     texto = " ".join(_textos(spec)).lower()
     for termo in _proibidos():
         if re.search(r"(?<![a-zà-ú])" + re.escape(termo) + r"(?![a-zà-ú])", texto):
@@ -353,7 +405,8 @@ def conferir(spec):
     return erros
 
 
-TIPOS = {"agenda": agenda, "jogo_unico": jogo_unico, "manchete": manchete, "chamada": chamada, "estatisticas": estatisticas}
+TIPOS = {"agenda": agenda, "jogo_unico": jogo_unico, "manchete": manchete, "chamada": chamada, "estatisticas": estatisticas,
+         "tarja_video": tarja_video, "tarja_aspas": tarja_video, "tarja_aspas_dividida": tarja_video}
 
 
 # ---- fotos da equipe (apresentadores, comentaristas e repórteres) ----
@@ -438,6 +491,8 @@ def resolver_equipe(spec):
                 j = {"foco": foco_rosto(caminho), **j, "foto": caminho}
             jogos.append(j)
         spec["jogos"] = jogos
+    if spec.get("tipo") == "tarja_aspas_dividida" and isinstance(spec.get("fotos"), list):
+        spec["fotos"] = [fix(f) for f in spec["fotos"]]
     return spec
 
 
@@ -445,7 +500,7 @@ def render(spec, out_path):
     from playwright.sync_api import sync_playwright
     spec = resolver_equipe(spec)
     tipo = spec.get("tipo")
-    if tipo == "agenda" and len(spec.get("jogos") or []) == 1:
+    if tipo == "agenda" and int(spec.get("total_paginas", 1)) <= 1 and len(spec.get("jogos") or []) == 1 and " X " in str(spec["jogos"][0].get("confronto", "")).upper():
         # regra do Gestor: dia com jogo único usa SEMPRE o modelo de jogo único
         j = spec["jogos"][0]
         foto = j.get("foto") or spec.get("fundo")
@@ -461,17 +516,45 @@ def render(spec, out_path):
     if tipo not in TIPOS:
         raise SystemExit(f"tipo inválido: {tipo}. Use: {', '.join(TIPOS)}")
     doc = TIPOS[tipo](spec)
+    width, height = (1080, 1920) if tipo.startswith("tarja_") else (W, H)
     with sync_playwright() as p:
-        exe = "/usr/bin/google-chrome" if os.path.exists("/usr/bin/google-chrome") else None
+        exe = os.environ.get("GOAT_CHROME_PATH") or shutil.which("google-chrome")
+        if not exe and Path("/usr/lib/chromium/chromium").is_file():
+            exe = str(Path("/usr/lib/chromium/chromium"))
         b = p.chromium.launch(executable_path=exe, args=["--no-sandbox"]) if exe else p.chromium.launch(args=["--no-sandbox"])
-        pg = b.new_page(viewport={"width": W, "height": H}, device_scale_factor=1)
+        pg = b.new_page(viewport={"width": width, "height": height}, device_scale_factor=1)
         pg.set_content(doc, wait_until="load")
         pg.evaluate("document.fonts.ready")
         pg.wait_for_function("document.body.dataset.ok==1", timeout=5000)
         pg.wait_for_timeout(150)
-        pg.screenshot(path=out_path, clip={"x": 0, "y": 0, "width": W, "height": H})
+        # Uma imagem com texto cortado ou asset ausente não vira entrega aprovada.
+        report = pg.evaluate("""() => {
+          const art=document.querySelector('.art').getBoundingClientRect();
+          const errors=[];
+          for (const el of document.querySelectorAll('[data-qa-text],[data-qa-box]')) {
+            const r=el.getBoundingClientRect();
+            if(r.left<art.left-1||r.right>art.right+1||r.top<art.top-1||r.bottom>art.bottom+1)
+              errors.push('bloco fora da área da peça: '+el.innerText.slice(0,80));
+            if(el.hasAttribute('data-qa-text') && (el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+2))
+              errors.push('texto não cabe na área segura: '+el.innerText.slice(0,80));
+          }
+          for (const img of document.images)
+            if(!img.complete||!img.naturalWidth) errors.push('imagem não carregada');
+          const cards=[...document.querySelectorAll('[data-agenda-card]')].map(el=>{
+            const r=el.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};
+          });
+          const logos=document.querySelectorAll('[data-goat-logo]').length;
+          if(logos!==1) errors.push('a peça precisa de um único logo GOAT');
+          return {width:art.width,height:art.height,logos,cards,errors};
+        }""")
+        if report["errors"]:
+            b.close()
+            raise ValueError("CONFERÊNCIA DE LAYOUT: " + " | ".join(report["errors"]))
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        pg.screenshot(path=str(out_path), clip={"x": 0, "y": 0, "width": width, "height": height})
         b.close()
     print(out_path)
+    return report
 
 
 if __name__ == "__main__":

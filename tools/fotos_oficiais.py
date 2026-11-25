@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
-"""Busca fotos novas no SITE OFICIAL do clube, sem busca paga.
+"""Busca limitada a sites oficiais conhecidos, sem descoberta de URLs por IA.
 
-1. Descobre o site oficial do clube (cache em tools/clubes.json; o Gemini sugere e o robô confere se abre).
-2. Abre a página inicial e as notícias mais recentes do próprio site (mesmo domínio).
-3. Baixa a imagem principal de cada notícia (og:image) com tools/baixar.py para fotos/<pasta>/.
-As fotos entram na biblioteca com o nome do clube no rótulo e o crédito do site oficial;
-quem escolhe qual serve é o Gemini, olhando a imagem (tools/agenda.py).
+As páginas precisam pertencer a um clube/liga da lista revisada. Cada nova foto
+é baixada isoladamente, conserva a origem e ainda precisa de revisão visual.
 """
-import json, re, subprocess, sys, urllib.parse
+import json, re, sys, urllib.parse
 from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 import baixar  # noqa: E402
+from photo_policy import official_origin, biblioteca_verified  # noqa: E402
 
 CACHE = ROOT / "tools" / "clubes.json"
 NOTICIA = re.compile(r"/(news|noticias|noticia|aktuelles|aktuell|artikel|article|articles|media|spielberichte|match|matches|post|posts|blog|en/news|ar/news)/", re.I)
@@ -32,27 +30,35 @@ def _cache():
         return {}
 
 
+KNOWN_SITES = {
+    "hertha": "https://www.herthabsc.com/de", "hertha-berlim": "https://www.herthabsc.com/de",
+    "karlsruher": "https://www.ksc.de", "karlsruher-sc": "https://www.ksc.de",
+    "paderborn": "https://www.scp07.de", "schalke": "https://schalke04.de", "schalke-04": "https://schalke04.de",
+    "palmeiras": "https://www.palmeiras.com.br", "internacional": "https://internacional.com.br",
+    "atletico-go": "https://atleticogoianiense.com.br", "atletico-goianiense": "https://atleticogoianiense.com.br",
+    "colonia": "https://fc.de", "fc-koln": "https://fc.de", "bayern": "https://fcbayern.com",
+    "bayern-de-munique": "https://fcbayern.com", "borussia-dortmund": "https://www.bvb.de",
+    "wolfsburg": "https://www.vfl-wolfsburg.de", "freiburg": "https://www.scfreiburg.com",
+    "union-berlin": "https://www.fc-union-berlin.de", "union-berlim": "https://www.fc-union-berlin.de",
+    "estudiantes": "https://estudiantesdelaplata.com", "al-ittihad": "https://www.ittihadclub.sa",
+    "al-qadsiah": "https://alqadsiah.com", "neom": "https://www.neom.com/en-us/neom-sports-club/",
+}
+
+
+def _same_origin(a, b):
+    return (urllib.parse.urlparse(a).hostname or "").removeprefix("www.") == (urllib.parse.urlparse(b).hostname or "").removeprefix("www.")
+
+
 def site_oficial(time, campeonato):
-    cache = _cache()
+    """Usa apenas a relação clube→site revisada; abrir um URL não verifica sua autoria."""
     chave = _norm(time)
-    if chave in cache:
-        return cache[chave].get("site")
-    site = None
-    try:
-        import gemini
-        r = gemini.json_de(gemini.gerar([{"text": f"""Qual é o site OFICIAL do clube de futebol "{time}" (competição: {campeonato})?
-Só o domínio oficial do próprio clube (não Wikipedia, não portal de notícias, não loja).
-Responda só ```json {{"site": "https://..."}}``` ou {{"site": null}} se não tiver certeza."""}], temp=0.0))
-        site = r.get("site")
-        if site:
-            _, _, final = baixar.get(site, tentativas=2)
-            site = final or site
-    except Exception as e:
-        print(f"  site oficial de {time}: não achei ({str(e)[:80]})", file=sys.stderr, flush=True)
-        site = None
-    cache[chave] = {"time": time, "site": site, "conferido": datetime.utcnow().date().isoformat()}
-    CACHE.write_text(json.dumps(cache, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
-    return site
+    known = KNOWN_SITES.get(chave)
+    if not known:
+        return None
+    cached = _cache().get(chave, {}).get("site")
+    if cached and official_origin(cached) and _same_origin(cached, known):
+        return cached
+    return known if official_origin(known) else None
 
 
 def _html_navegador(url):
@@ -73,30 +79,34 @@ def _html_navegador(url):
             b.close()
 
 
-def noticias(site, n=6):
+def noticias(site, n=4):
+    if not official_origin(site):
+        return []
     try:
         ctype, data, final = baixar.get(site, tentativas=2)
         html = data.decode("utf-8", errors="ignore") if "html" in ctype else ""
     except Exception as e:
         print(f"  {site}: não abriu direto ({str(e)[:80]})", file=sys.stderr, flush=True)
         html, final = "", site
-    links = _links(html, final, n)
+    links = _links(html, final, n) if official_origin(final) and _same_origin(site, final) else []
     if len(links) < 2:
         try:
             html, final = _html_navegador(site)
-            links = _links(html, final, n)
+            links = _links(html, final, n) if official_origin(final) and _same_origin(site, final) else []
         except Exception as e:
             print(f"  {site}: navegador falhou ({str(e)[:80]})", file=sys.stderr, flush=True)
     return links
 
 
 def _links(html, final, n):
+    if not official_origin(final):
+        return []
     dominio = urllib.parse.urlparse(final).netloc.replace("www.", "")
     links = []
     for href in re.findall(r'href=["\']([^"\'#]+)["\']', html):
         url = urllib.parse.urljoin(final, href.replace("&amp;", "&"))
         p = urllib.parse.urlparse(url)
-        if p.netloc.replace("www.", "") != dominio or not NOTICIA.search(p.path) or len(p.path) < 18:
+        if not official_origin(url) or p.netloc.replace("www.", "") != dominio or not NOTICIA.search(p.path) or len(p.path) < 18:
             continue
         if url not in links:
             links.append(url)
@@ -104,22 +114,25 @@ def _links(html, final, n):
 
 
 def buscar(time, campeonato, rotulo):
-    """Baixa até 6 fotos novas do site oficial do clube. Devolve os caminhos (fotos/<pasta>/<n>.ext)."""
+    """Baixa só as candidatas desta chamada; não executa outros pedidos da fila."""
     site = site_oficial(time, campeonato)
     if not site:
         return []
     paginas = noticias(site)
-    print(f"  {time}: site {site} · {len(paginas)} notícias", file=sys.stderr, flush=True)
     if not paginas:
-        paginas = [site]
-    pasta = f"oficial-{_norm(time)[:40]}-{datetime.utcnow().strftime('%Y%m%d%H%M')}"
-    credito = urllib.parse.urlparse(site).netloc.replace("www.", "")
-    (ROOT / "jobs").mkdir(exist_ok=True)
-    (ROOT / "jobs" / f"{pasta}.json").write_text(json.dumps({"id": pasta, "fotos": [
-        {"url": u, "credito": f"{time} (site oficial · {credito})", "rotulo": rotulo} for u in paginas]}, ensure_ascii=False), encoding="utf-8")
-    subprocess.run([sys.executable, str(ROOT / "tools" / "baixar.py")], check=False, capture_output=True)
-    meta = ROOT / "fotos" / pasta / "meta.json"
-    if not meta.exists():
         return []
-    m = json.loads(meta.read_text(encoding="utf-8"))
-    return [f"fotos/{pasta}/{f['arquivo']}" for f in m.get("fotos", []) if f.get("ok") and not f.get("baixa_resolucao")]
+    pasta = f"oficial-{_norm(time)[:40]}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+    credito = urllib.parse.urlparse(site).netloc.replace("www.", "")
+    dest = ROOT / "fotos" / pasta
+    dest.mkdir(parents=True, exist_ok=True)
+    resultados = []
+    for index, url in enumerate(paginas[:4], 1):
+        if not official_origin(url) or not _same_origin(site, url):
+            continue
+        item = {"url": url, "credito": f"{time} (site oficial · {credito})", "rotulo": rotulo}
+        try:
+            resultados.append({"ok": True, **baixar.baixar(item, dest, index)})
+        except Exception:
+            resultados.append({"ok": False, "pagina": url, "erro": "Foto indisponível na fonte oficial"})
+    (dest / "meta.json").write_text(json.dumps({"id": pasta, "fotos": resultados}, ensure_ascii=False, indent=2), encoding="utf-8")
+    return [f["arquivo"] for f in biblioteca_verified(ROOT) if f["arquivo"].startswith(f"fotos/{pasta}/")]

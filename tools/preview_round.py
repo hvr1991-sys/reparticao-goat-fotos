@@ -1,4 +1,8 @@
-"""Offline integration preview. Never imports processar or accesses Supabase."""
+"""LEGACY MOCK ONLY — not a release gate, not visual approval.
+
+Retained as historical fixture. Active CI uses tools.verify_release with real
+provider responses; this old mocked flow must never be treated as homologation.
+"""
 import json, tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -31,4 +35,4 @@ def main():
     print("Offline designer orchestration passed; AI responses mocked; no database writes.")
 
 if __name__=="__main__":
-    main()
+    raise SystemExit("Legacy mocked preview disabled. Use python -m tools.verify_release --live.")
