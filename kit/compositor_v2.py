@@ -60,6 +60,8 @@ def build(s):
         raise ValueError("2 a 32 elementos")
     if sum(e.get("tipo")=="marca" for e in items)!=1:
         raise ValueError("exatamente uma marca")
+    if s.get("finalidade") in ("tarja","thumb","header","transmissao","pre_jogo"):
+        raise ValueError("formatos fora do escopo feed 1080x1350")
     if not any(e.get("tipo")=="texto" and e.get("papel")=="titulo" for e in items):
         raise ValueError("titulo obrigatorio")
     assets=s.get("fotos",{})
@@ -97,6 +99,9 @@ def build(s):
             parts.append(f'<div style="{pos};display:flex;align-items:center;justify-content:center">{r.mark_tag(s,w,"max-height:100%;object-fit:contain")}</div>')
         elif t=="forma":
             color=COLORS[e.get("cor","preto")]
+            # Provisional conservative guard: yellow is an accent, not a large panel.
+            if color==r.Y and w*h>1080*1350*0.08:
+                raise ValueError("amarelo reservado a detalhes; bloco grande")
             opacity=integer(e.get("opacidade",100),0,100)/100
             radius=integer(e.get("raio",0),0,100)
             parts.append(f'<div style="{pos};background:{color};opacity:{opacity};border-radius:{radius}px"></div>')
@@ -140,7 +145,7 @@ def build(s):
     if errors:
         raise ValueError(" | ".join(errors))
     if s.get("ilustrativo"):
-        parts.append('<div style="position:absolute;top:12px;left:12px;color:#FFD318;background:#08080A;padding:4px 8px;font:600 22px GOAT Sans">TESTE ILUSTRATIVO</div>')
+        parts.append('<div style="position:absolute;top:12px;left:12px;color:#FFD318;background:#08080A;padding:4px 8px;font:600 22px GOAT Sans">DADOS ILUSTRATIVOS</div>')
     return r.page("".join(parts))
 
 def render(s,out):
