@@ -27,6 +27,7 @@ def main(destination):
         "fotos/01737ba0-b68b-415a-b542-779f132a0f88-j51/1.png",
         "fotos/050803b6-dd08-4e29-8d82-a05cd70b4829-j95/1.png",
         "fotos/399ca7c2-a821-42d7-8509-02ed455f5125-j112/1.jpg",
+        "fotos/010777c4-1957-45ec-95a5-f3c375c227ac-j24/1.png",
     ]
     photos = [str(ROOT / path) for path in paths]
     provenance = []
@@ -41,7 +42,10 @@ def main(destination):
              for time, teams, photo, focus in zip(
                  ["16H30", "18H30", "20H", "22H"],
                  ["TIME A X TIME B", "TIME C X TIME D", "TIME E X TIME F", "TIME G X TIME H"],
-                 photos, ["70% 25%", "70% 15%", "50% 28%", "65% 20%"])]
+                 # O retrato fechado permanece no post: a cabeça não cabe inteira
+                 # no card de 111 px. A agenda usa uma foto oficial mais aberta.
+                 [photos[4], photos[1], photos[2], photos[3]],
+                 ["70% 15%", "70% 15%", "50% 0%", "65% 20%"])]
     specs = {
         "agenda-fiel": {**base, "tipo": "agenda", "jogos": games},
         "jogo-unico": {**base, "tipo": "jogo_unico", "foto": photos[3], "foco": "38% 30%",

@@ -3,25 +3,61 @@ Magnific cuida da geração visual. Este adaptador nunca chama Gemini, busca pag
 modelo pago ou libera uma arte quando a revisão não respondeu.
 """
 import json
+import math
 import os
 import time
 import urllib.error
 import urllib.request
 from decimal import Decimal, InvalidOperation
+from email.utils import parsedate_to_datetime
 
 BASE = "https://openrouter.ai/api/v1"
 _catalog = None
 _calls = 0
 _last_call = 0.0
 _blocked_until = 0.0
+_blocked_scope = "unknown"
+_blocked_status = 429
 LAST_RESPONSE = {}
 PREFERRED = ("particle-ai/particle-1:free", "nvidia/nemotron-3.5-super-vl:free", "inclusionai/ling-3.2-flash:free")
+LIMIT_SCOPES = frozenset({"upstream_provider_shared_pool", "openrouter_free_tier_per_minute",
+                          "openrouter_free_tier_per_day", "unknown"})
 
 
 class ProviderUnavailable(RuntimeError):
-    def __init__(self, message, status=None, retry_after=0):
+    def __init__(self, message, status=None, retry_after=0, scope="unknown"):
         super().__init__(message)
         self.status, self.retry_after = status, retry_after
+        self.scope = scope if isinstance(scope, str) and scope in LIMIT_SCOPES else "unknown"
+
+
+def _retry_delay(headers, status):
+    """Honor both server hints; X-RateLimit-Reset is Unix milliseconds."""
+    now, delays = time.time(), []
+    retry = str(headers.get("Retry-After", ""))[:128]
+    try:
+        delays.append(int(retry) if retry.isdigit() else parsedate_to_datetime(retry).timestamp() - now)
+    except (ValueError, TypeError, OverflowError):
+        pass
+    reset = str(headers.get("X-RateLimit-Reset", ""))[:128]
+    if reset.isdigit():
+        delays.append(int(reset) / 1000 - now)
+    return max(0, math.ceil(max(delays))) if delays else (3600 if status in (402, 429) else 0)
+
+
+def _error_scope(error):
+    # Parse at most 32 KiB, keep only a fixed enum, and discard all provider text.
+    try:
+        body = json.loads(error.read(32768))
+        metadata = body.get("error", {}).get("metadata", {})
+        scope = metadata.get("limit_source")
+        if scope == "openrouter_free_tier_daily":
+            scope = "openrouter_free_tier_per_day"
+        return scope if isinstance(scope, str) and scope in LIMIT_SCOPES else "unknown"
+    except (OSError, ValueError, TypeError, AttributeError, RecursionError):
+        return "unknown"
+    finally:
+        error.close()
 
 
 def _request(path, payload=None):
@@ -37,9 +73,9 @@ def _request(path, payload=None):
             return json.load(response)
     except urllib.error.HTTPError as e:
         # Never echo provider bodies, private prompts or request headers into CI.
-        retry = e.headers.get("Retry-After", "")
-        retry = min(86400, max(60, int(retry))) if retry.isdigit() else (3600 if e.code in (402, 429) else 0)
-        raise ProviderUnavailable(f"OpenRouter indisponível (HTTP {e.code})", e.code, retry) from None
+        retry = _retry_delay(e.headers or {}, e.code)
+        scope = _error_scope(e)
+        raise ProviderUnavailable(f"OpenRouter indisponível (HTTP {e.code})", e.code, retry, scope) from None
     except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
         raise ProviderUnavailable("OpenRouter não respondeu de forma válida") from None
 
@@ -52,12 +88,13 @@ def _zero(value):
 
 
 def models(vision=False, structured=False):
-    global _catalog, _blocked_until
+    global _catalog, _blocked_until, _blocked_scope, _blocked_status
     if _catalog is None:
         try:
             _catalog = _request("/models").get("data", [])
         except ProviderUnavailable as e:
             _blocked_until = time.time() + (e.retry_after or 300)
+            _blocked_scope, _blocked_status = e.scope, e.status
             raise
     allowed = []
     for m in _catalog:
@@ -87,9 +124,11 @@ def models(vision=False, structured=False):
 
 
 def gerar(partes, busca=False, temp=0.6, *, structured=False):
-    global _calls, _last_call, _blocked_until, LAST_RESPONSE
+    global _calls, _last_call, _blocked_until, _blocked_scope, _blocked_status, LAST_RESPONSE
+    LAST_RESPONSE = {}
     if time.time() < _blocked_until:
-        raise ProviderUnavailable("OpenRouter aguardando liberação do limite", 429, int(_blocked_until-time.time()))
+        raise ProviderUnavailable("OpenRouter aguardando liberação do limite", _blocked_status,
+                                  math.ceil(_blocked_until-time.time()), _blocked_scope)
     content = []
     for part in partes:
         if "text" in part:
@@ -105,46 +144,45 @@ def gerar(partes, busca=False, temp=0.6, *, structured=False):
     if busca:
         content.append({"type": "text", "text": "Não há ferramenta de busca nesta chamada. Use exclusivamente as fontes fornecidas e verificadas. Não invente URLs ou fatos."})
     vision = any(p["type"] == "image_url" for p in content)
-    error = None
-    for model in models(vision, structured):
-        if _calls >= int(os.environ.get("GOAT_MAX_LLM_CALLS", "45")):
-            raise ProviderUnavailable("Limite de chamadas desta execução alcançado")
-        wait = 3.1 - (time.monotonic() - _last_call)
-        if wait > 0:
-            time.sleep(wait)
-        payload = {"model": model, "messages": [{"role": "user", "content": content}],
-                   "temperature": temp, "max_tokens": 5000,
-                   "provider": {"require_parameters": True, "max_price": {"prompt": 0, "completion": 0}}}
-        if structured:
-            payload["response_format"] = {"type": "json_object"}
-        _calls += 1
-        _last_call = time.monotonic()
-        try:
-            data = _request("/chat/completions", payload)
-        except ProviderUnavailable as e:
-            error = e
-            if e.status in (401, 402, 403, 429):
-                _blocked_until = time.time() + (e.retry_after or 3600)
-                raise
-            continue
-        actual = str(data.get("model", ""))
-        if actual != model:
-            raise ProviderUnavailable("Provedor respondeu com modelo diferente do solicitado")
-        usage = data.get("usage") or {}
-        if usage.get("cost") is not None and not _zero(usage["cost"]):
-            _blocked_until = time.time() + 86400
-            raise ProviderUnavailable("Custo inesperado: execução interrompida")
-        choices = data.get("choices") or []
-        if not choices or choices[0].get("finish_reason") != "stop":
-            raise ProviderUnavailable("Resposta incompleta; não aprovar nem gravar conteúdo")
-        answer = (choices[0].get("message") or {}).get("content")
-        if not isinstance(answer, str) or not answer.strip():
-            raise ProviderUnavailable("Resposta textual ausente")
-        LAST_RESPONSE = {"model": actual, "cost": usage.get("cost"), "calls": _calls,
-                         "vision": vision, "structured": structured}
-        print("OpenRouter:", actual, "· visão" if vision else "· editorial", flush=True)
-        return answer
-    raise error or ProviderUnavailable("OpenRouter gratuito indisponível")
+    candidates = models(vision, structured)
+    if _calls >= int(os.environ.get("GOAT_MAX_LLM_CALLS", "45")):
+        raise ProviderUnavailable("Limite de chamadas desta execução alcançado")
+    wait = 3.1 - (time.monotonic() - _last_call)
+    if wait > 0:
+        time.sleep(wait)
+    # One request: OpenRouter performs the documented provider/model fallbacks.
+    payload = {"models": candidates, "messages": [{"role": "user", "content": content}],
+               "temperature": temp, "max_tokens": 5000,
+               "provider": {"require_parameters": True, "max_price": {"prompt": 0, "completion": 0}}}
+    if structured:
+        payload["response_format"] = {"type": "json_object"}
+    _calls += 1
+    _last_call = time.monotonic()
+    try:
+        data = _request("/chat/completions", payload)
+    except ProviderUnavailable as e:
+        if e.status in (401, 402, 403, 429) or e.retry_after:
+            _blocked_until = time.time() + (e.retry_after or 3600)
+            _blocked_scope, _blocked_status = e.scope, e.status
+        raise
+    actual = str(data.get("model", ""))
+    if actual not in candidates:
+        raise ProviderUnavailable("Provedor respondeu com modelo fora da lista autorizada")
+    usage = data.get("usage") or {}
+    if not _zero(usage.get("cost")):
+        _blocked_until = time.time() + 86400
+        _blocked_scope, _blocked_status = "unknown", None
+        raise ProviderUnavailable("Custo zero não confirmado: execução interrompida")
+    choices = data.get("choices") or []
+    if not choices or choices[0].get("finish_reason") != "stop":
+        raise ProviderUnavailable("Resposta incompleta; não aprovar nem gravar conteúdo")
+    answer = (choices[0].get("message") or {}).get("content")
+    if not isinstance(answer, str) or not answer.strip():
+        raise ProviderUnavailable("Resposta textual ausente")
+    LAST_RESPONSE = {"model": actual, "cost": usage.get("cost"), "calls": _calls,
+                     "vision": vision, "structured": structured}
+    print("OpenRouter:", actual, "· visão" if vision else "· editorial", flush=True)
+    return answer
 
 
 def json_de(text):

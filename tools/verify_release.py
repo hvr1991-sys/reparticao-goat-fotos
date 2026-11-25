@@ -60,7 +60,7 @@ def _public_error(error, stage=None):
         return {"type": type(error).__name__, "reason": str(error)[:320]}
     if isinstance(error, openrouter_adapter.ProviderUnavailable):
         return {"type": type(error).__name__, "reason": "OpenRouter gratuito indisponível; nenhuma aprovação presumida",
-                "http_status": error.status, "retry_after": error.retry_after}
+                "http_status": error.status, "retry_after": error.retry_after, "scope": error.scope}
     if isinstance(error, magnific_adapter.MagnificUnavailable):
         code = re.search(r"HTTP (\d{3})", str(error))
         return {"type": type(error).__name__, "reason": "Consulta Magnific indisponível; nenhuma nova geração enviada",
