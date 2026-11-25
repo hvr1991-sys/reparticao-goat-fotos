@@ -94,7 +94,26 @@ def build(s):
                 protected.append((bx,by,bx+bw,by+bh))
             mask=e.get("recorte_poligono")
             src=recorte_uri(path,mask) if mask is not None else r.editorial(path)
-            parts.append(f'<img src="{src}" style="{pos};object-fit:cover;object-position:{focus}">')
+            # Feather photo edges without changing original image geometry.
+            fade=e.get("transicao")
+            effect=""
+            if fade is not None:
+                if not isinstance(fade,dict):
+                    raise ValueError("transicao invalida")
+                direction={"base":"to bottom","topo":"to top","esquerda":"to left","direita":"to right"}.get(fade.get("lado"))
+                if direction is None:
+                    raise ValueError("lado da transicao invalido")
+                amount=integer(fade.get("extensao",30),10,45)
+                effect=f";mask-image:linear-gradient({direction},black 0%,black {100-amount}%,transparent 100%);-webkit-mask-image:linear-gradient({direction},black 0%,black {100-amount}%,transparent 100%)"
+                # Reject a fade that intersects a reviewer-marked face.
+                side=fade["lado"]
+                for bx,by,bw,bh in e.get("rostos_protegidos",[]):
+                    if ((side=="base" and by+bh>y+h*(1-amount/100)) or
+                        (side=="topo" and by<y+h*amount/100) or
+                        (side=="esquerda" and bx<x+w*amount/100) or
+                        (side=="direita" and bx+bw>x+w*(1-amount/100))):
+                        raise ValueError("transicao invade rosto protegido")
+            parts.append(f'<img src="{src}" style="{pos};object-fit:cover;object-position:{focus}{effect}">')
         elif t=="marca":
             parts.append(f'<div style="{pos};display:flex;align-items:center;justify-content:center">{r.mark_tag(s,w,"max-height:100%;object-fit:contain")}</div>')
         elif t=="forma":
