@@ -1,5 +1,5 @@
 {
-  "versao": 2,
+  "versao": 3,
   "escopo": "experimental",
   "regras_gestor": {
     "marca": "logo",
@@ -18,7 +18,8 @@
     "modelos": "modelos/",
     "artes_aprovadas": "consultar versão aprovada em rg_cards e rg-artes",
     "ensinamentos": "rg_licoes",
-    "skill": "canal-goat-artes"
+    "skill": "canal-goat-artes",
+    "analise_visual": "23 artes aprovadas conferidas em tres folhas de contato; observacoes qualitativas, nao medidas pixel a pixel"
   },
   "orientacoes": [
     "Modelos são exemplos, não lista fechada de layouts.",
@@ -27,7 +28,12 @@
     "Evitar repetição visual desnecessária.",
     "Não inventar dados, horários ou fontes.",
     "Quando uma regra da skill não estiver disponível, sinalizar revisão pendente.",
-    "Priorizar titulos preenchidos, de alto contraste. Contorno tipografico e recurso complementar ou excepcional, nao padrao de manchete. Se houver contorno como protagonista, justificar na revisao visual."
+    "Priorizar titulos preenchidos, de alto contraste. Contorno tipografico e recurso complementar ou excepcional, nao padrao de manchete. Se houver contorno como protagonista, justificar na revisao visual.",
+    "Nas 23 artes aprovadas observadas, as pecas editoriais usam predominantemente fotografia integrada ao fundo, com transicao escura suave na area textual; evitar foto retangular isolada ou emenda abrupta.",
+    "Antes de posicionar texto, planejar enquadramento, expressao e acao esportiva; escolher foco pela foto, nunca pelo centro geometrico por padrao.",
+    "Em varios atletas, manter tamanho aparente do rosto, linha dos olhos e corte do tronco equivalentes conforme a skill; protagonismo por primeiro plano, nao ampliacao desproporcional.",
+    "Preservar tratamento GOAT_SPORTS_EDITORIAL e evitar degradê que apague rosto ou jogada. Revisar visualmente toda arte.",
+    "Nas referencias editoriais observadas, titulos preenchidos em branco/amarelo dominam; logo discreto, geralmente no topo; informacoes auxiliares e confronto subordinados. Nao converter essa observacao em template fixo."
   ],
   "limites": {
     "integracao_skill_completa": false,
