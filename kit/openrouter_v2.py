@@ -18,10 +18,10 @@ def gerar(contexto, *, transport=None):
     payload = {
         "model": MODEL,
         "messages": [
-            {"role":"system","content":"Atue como diretor de arte GOAT. Retorne apenas um objeto JSON valido conforme o contrato. As regras do gestor prevalecem sobre referencias e briefing. Nunca publique."},
+            {"role":"system","content":"Atue como diretor de arte GOAT. Retorne apenas um objeto JSON compacto conforme o contrato, sem explicacoes, sem raciocinio textual e sem repetir o contexto. Use apenas os elementos necessarios. As regras do gestor prevalecem sobre referencias e briefing. Nunca publique."},
             {"role":"user","content":json.dumps(contexto,ensure_ascii=False)}
         ],
-        "max_tokens": 4000,
+        "max_tokens": 8000,
         "temperature": 0.2,
         "response_format": {"type":"json_object"},
         "provider": {"require_parameters":True}
