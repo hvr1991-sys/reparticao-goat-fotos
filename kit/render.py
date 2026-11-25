@@ -398,7 +398,7 @@ def foto_equipe(valor):
     return str(ph)
 
 
-def foco_rosto(path, caixa=(400, 160)):
+def foco_rosto(path, caixa=(400, 160), centro=0.55):
     """Enquadra o rosto do retrato no card da agenda (object-position). Sem OpenCV, usa o topo da foto."""
     try:
         import cv2
@@ -410,7 +410,7 @@ def foco_rosto(path, caixa=(400, 160)):
         if len(faces) == 0:
             return "50% 14%"
         x, y, fw, fh = max(faces, key=lambda f: f[2] * f[3])
-        cx, cy = (x + fw / 2) / w, (y + fh * 0.55) / h  # centro um pouco abaixo dos olhos (pega o sorriso)
+        cx, cy = (x + fw / 2) / w, (y + fh * centro) / h  # 0,55: um pouco abaixo dos olhos (pega o sorriso)
         bw, bh = caixa
         esc_ = max(bw / w, bh / h)
         sw, sh = w * esc_, h * esc_

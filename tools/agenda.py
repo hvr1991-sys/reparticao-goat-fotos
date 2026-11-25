@@ -138,7 +138,7 @@ def foco(arquivo, altura=160):
     sys.path.insert(0, str(ROOT / "kit"))
     try:
         from render import foco_rosto
-        f = foco_rosto(ROOT / arquivo, caixa=(422, altura))
+        f = foco_rosto(ROOT / arquivo, caixa=(422, altura), centro=0.62)
         return "60% 25%" if f == "50% 14%" else f
     except Exception:
         return "60% 25%"

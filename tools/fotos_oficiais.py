@@ -55,15 +55,42 @@ Responda só ```json {{"site": "https://..."}}``` ou {{"site": null}} se não ti
     return site
 
 
+def _html_navegador(url):
+    """Sites que montam a página com JavaScript: abre num Chrome de verdade e pega o HTML pronto."""
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as pw:
+        exe = "/usr/bin/google-chrome" if Path("/usr/bin/google-chrome").exists() else None
+        b = pw.chromium.launch(executable_path=exe, args=["--no-sandbox"]) if exe else pw.chromium.launch(args=["--no-sandbox"])
+        try:
+            pg = b.new_page(user_agent=baixar.UA, locale="pt-BR")
+            pg.goto(url, wait_until="domcontentloaded", timeout=60000)
+            try:
+                pg.wait_for_load_state("networkidle", timeout=15000)
+            except Exception:
+                pass
+            return pg.content(), pg.url
+        finally:
+            b.close()
+
+
 def noticias(site, n=6):
     try:
         ctype, data, final = baixar.get(site, tentativas=2)
+        html = data.decode("utf-8", errors="ignore") if "html" in ctype else ""
     except Exception as e:
-        print(f"  {site}: não abriu ({str(e)[:80]})", file=sys.stderr, flush=True)
-        return []
-    if "html" not in ctype:
-        return []
-    html = data.decode("utf-8", errors="ignore")
+        print(f"  {site}: não abriu direto ({str(e)[:80]})", file=sys.stderr, flush=True)
+        html, final = "", site
+    links = _links(html, final, n)
+    if len(links) < 2:
+        try:
+            html, final = _html_navegador(site)
+            links = _links(html, final, n)
+        except Exception as e:
+            print(f"  {site}: navegador falhou ({str(e)[:80]})", file=sys.stderr, flush=True)
+    return links
+
+
+def _links(html, final, n):
     dominio = urllib.parse.urlparse(final).netloc.replace("www.", "")
     links = []
     for href in re.findall(r'href=["\']([^"\'#]+)["\']', html):
