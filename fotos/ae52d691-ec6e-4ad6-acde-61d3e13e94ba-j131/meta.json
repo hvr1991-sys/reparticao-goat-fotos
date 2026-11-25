@@ -1,0 +1,27 @@
+{
+  "id": "ae52d691-ec6e-4ad6-acde-61d3e13e94ba-j131",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1512,
+      "altura": 779,
+      "url_imagem": "https://media-cdn.cortextech.io/08315cd5-9b22-4746-9bcc-242f225ceb43.webp",
+      "pagina": "https://www.ittihadclub.sa/en/news",
+      "credito": "Al Ittihad Club",
+      "rotulo": "Al Ittihad notícias",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 4500,
+      "altura": 5625,
+      "url_imagem": "https://media-cdn.cortextech.io/N9AOpTakeBc4/1BSdBWIjChWbPU/5871ed00-1636-4457-8d02-82d1b1f292f9.jpeg",
+      "pagina": "https://www.ittihadclub.sa/en",
+      "credito": "Al Ittihad Club",
+      "rotulo": "Al Ittihad home",
+      "baixa_resolucao": false
+    }
+  ]
+}
