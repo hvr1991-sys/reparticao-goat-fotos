@@ -9,8 +9,10 @@ import os
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from email.utils import parsedate_to_datetime
+from pathlib import Path
 
 BASE = "https://openrouter.ai/api/v1"
 _catalog = None
@@ -19,6 +21,9 @@ _last_call = 0.0
 _blocked_until = 0.0
 _blocked_scope = "unknown"
 _blocked_status = 429
+_quota = None
+_quota_checked_at = 0.0
+STATE_PATH = Path(os.environ.get("GOAT_PROVIDER_STATE", str(Path(__file__).resolve().parents[1] / ".goat-state" / "openrouter.json")))
 LAST_RESPONSE = {}
 PREFERRED = ("particle-ai/particle-1:free", "nvidia/nemotron-3.5-super-vl:free", "inclusionai/ling-3.2-flash:free")
 LIMIT_SCOPES = frozenset({"upstream_provider_shared_pool", "openrouter_free_tier_per_minute",
@@ -39,6 +44,105 @@ class JSONContractError(ValueError):
     def __init__(self, code, diagnostics):
         super().__init__("Resposta JSON inválida após uma correção")
         self.code, self.diagnostics = code, diagnostics
+
+
+def _iso(value):
+    return datetime.fromtimestamp(value, timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _load_state():
+    """Only operational counters and a not-before instant; never keys or prompts."""
+    global _blocked_until, _blocked_scope, _blocked_status, _quota, _quota_checked_at
+    try:
+        data = json.loads(STATE_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if not isinstance(data, dict) or data.get("version") != 1:
+        return
+    deadline = data.get("blocked_until")
+    if type(deadline) in (int, float) and math.isfinite(deadline) and _blocked_until < deadline < time.time() + 31536000:
+        _blocked_until = deadline
+        scope = data.get("limit_scope")
+        _blocked_scope = scope if isinstance(scope, str) and scope in LIMIT_SCOPES else "unknown"
+        status = data.get("http_status")
+        _blocked_status = status if type(status) is int and 100 <= status <= 599 else None
+    checked = data.get("quota_checked_at")
+    quota = data.get("free_daily_requests")
+    if type(checked) in (int, float) and math.isfinite(checked) and _quota_checked_at < checked <= time.time() + 60:
+        if isinstance(quota, dict) and all(type(quota.get(k)) is int and 0 <= quota[k] <= 100000000 for k in ("used", "limit", "remaining")):
+            _quota = {k: quota[k] for k in ("used", "limit", "remaining")}
+            _quota_checked_at = checked
+
+
+def _save_state():
+    STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    data = {"version": 1, "blocked_until": _blocked_until,
+            "limit_scope": _blocked_scope, "http_status": _blocked_status,
+            "quota_checked_at": _quota_checked_at, "free_daily_requests": _quota}
+    temporary = STATE_PATH.with_suffix(".tmp")
+    temporary.write_text(json.dumps(data, sort_keys=True), encoding="utf-8")
+    temporary.chmod(0o600)
+    temporary.replace(STATE_PATH)
+
+
+def _remember_block(error):
+    global _blocked_until, _blocked_scope, _blocked_status
+    _load_state()
+    deadline = time.time() + (error.retry_after or (3600 if error.status in (401, 402, 403, 429) else 300))
+    if deadline >= _blocked_until:
+        _blocked_until, _blocked_scope, _blocked_status = deadline, error.scope, error.status
+    error.retry_after = max(1, math.ceil(_blocked_until - time.time()))
+    error.retry_at = _iso(_blocked_until)
+    error.scope, error.status = _blocked_scope, _blocked_status
+    _save_state()
+
+
+def provider_status(*, refresh=False, force=False):
+    """Read free quota without inference and retain waits across worker restarts."""
+    global _quota, _quota_checked_at
+    _load_state()
+    now = time.time()
+    same_day = (_quota_checked_at > 0 and int(_quota_checked_at // 86400) == int(now // 86400))
+    if refresh and (force or now >= _blocked_until) and (force or not same_day or now - _quota_checked_at >= 300):
+        try:
+            response = _request("/key")
+            data = response.get("data", {}) if isinstance(response, dict) else {}
+            raw = data.get("free_model_daily_requests") if isinstance(data, dict) else None
+            # Discard the rest of /key: no labels, balances, account or key IDs.
+            _quota = ({k: raw[k] for k in ("used", "limit", "remaining")}
+                      if isinstance(raw, dict) and all(type(raw.get(k)) is int and 0 <= raw[k] <= 100000000 for k in ("used", "limit", "remaining")) else None)
+            _quota_checked_at = time.time()
+            if _quota and _quota["limit"] > 0 and _quota["remaining"] == 0:
+                tomorrow = (datetime.now(timezone.utc) + timedelta(days=1)).replace(hour=0, minute=0, second=5, microsecond=0)
+                _remember_block(ProviderUnavailable("Cota gratuita diária aguardando renovação", 429,
+                    math.ceil(tomorrow.timestamp() - time.time()), "openrouter_free_tier_per_day"))
+            _save_state()
+        except ProviderUnavailable as error:
+            _remember_block(error)
+    waiting = time.time() < _blocked_until
+    result = {"status": "waiting_provider" if waiting else ("quota_available" if _quota else "quota_unknown"),
+              "inference_checked": False, "free_only": True}
+    if _quota_checked_at:
+        result["checked_at"] = _iso(_quota_checked_at)
+    if _quota is not None:
+        result["free_daily_requests"] = dict(_quota)
+    if waiting:
+        result.update(http_status=_blocked_status, limit_scope=_blocked_scope,
+                      retry_after=max(1, math.ceil(_blocked_until - time.time())), retry_at=_iso(_blocked_until))
+    elif _calls >= int(os.environ.get("GOAT_MAX_LLM_CALLS", "45")):
+        result.update(status="waiting_run_budget", code="call_budget", retry_after=3600)
+    return result
+
+
+def require_available():
+    state = provider_status()
+    if state["status"] == "waiting_provider":
+        error = ProviderUnavailable("OpenRouter aguardando liberação do limite", state.get("http_status"),
+                                    state["retry_after"], state["limit_scope"], code="retry_wait")
+        error.retry_at = state["retry_at"]
+        raise error
+    if state["status"] == "waiting_run_budget":
+        raise ProviderUnavailable("Limite de chamadas deste plantão; retomada no próximo", retry_after=3600, code="call_budget")
 
 
 def _retry_delay(headers, status):
@@ -103,8 +207,7 @@ def models(vision=False, structured=False, schema=False):
         try:
             _catalog = _request("/models").get("data", [])
         except ProviderUnavailable as e:
-            _blocked_until = time.time() + (e.retry_after or 300)
-            _blocked_scope, _blocked_status = e.scope, e.status
+            _remember_block(e)
             raise
     allowed = []
     for m in _catalog:
@@ -138,9 +241,7 @@ def models(vision=False, structured=False, schema=False):
 def gerar(partes, busca=False, temp=0.6, *, structured=False, schema=None):
     global _calls, _last_call, _blocked_until, _blocked_scope, _blocked_status, LAST_RESPONSE
     LAST_RESPONSE = {}
-    if time.time() < _blocked_until:
-        raise ProviderUnavailable("OpenRouter aguardando liberação do limite", _blocked_status,
-                                  math.ceil(_blocked_until-time.time()), _blocked_scope, code="retry_wait")
+    require_available()
     content = []
     for part in partes:
         if "text" in part:
@@ -185,18 +286,23 @@ def gerar(partes, busca=False, temp=0.6, *, structured=False, schema=None):
     try:
         data = _request("/chat/completions", payload)
     except ProviderUnavailable as e:
-        if e.status in (401, 402, 403, 429) or e.retry_after:
-            _blocked_until = time.time() + (e.retry_after or 3600)
-            _blocked_scope, _blocked_status = e.scope, e.status
+        _remember_block(e)
+        if e.status == 429:
+            # A read-only quota check distinguishes daily exhaustion from a
+            # provider pool limit. It never retries the failed inference.
+            state = provider_status(refresh=True, force=True)
+            e.retry_after = state.get("retry_after", e.retry_after)
+            e.retry_at = state.get("retry_at", getattr(e, "retry_at", None))
+            e.scope = state.get("limit_scope", e.scope)
         raise
     actual = str(data.get("model", ""))
     if actual not in candidates:
         raise ProviderUnavailable("Provedor respondeu com modelo fora da lista autorizada", code="unexpected_model")
     usage = data.get("usage") or {}
     if not _zero(usage.get("cost")):
-        _blocked_until = time.time() + 86400
-        _blocked_scope, _blocked_status = "unknown", None
-        raise ProviderUnavailable("Custo zero não confirmado: execução interrompida", code="unexpected_cost")
+        error = ProviderUnavailable("Custo zero não confirmado: execução interrompida", retry_after=86400, code="unexpected_cost")
+        _remember_block(error)
+        raise error
     choices = data.get("choices") or []
     finish = choices[0].get("finish_reason") if choices else "unknown"
     if finish not in ("stop", "length", "content_filter", "tool_calls", "error"):
@@ -263,3 +369,14 @@ def gerar_json(partes, validator=None, temp=0.3, schema=None, **kwargs):
                 raise JSONContractError(code, diagnostics) from e
             partes = original + [{"text": "A última resposta não atende ao contrato: " + str(e)[:220] +
                                   ". Corrija e devolva somente o objeto JSON solicitado. Resposta anterior: " + answer[:12000]}]
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Disponibilidade gratuita, sem chamadas de geração")
+    parser.add_argument("--status", type=Path, required=True)
+    args = parser.parse_args()
+    status = provider_status(refresh=True)
+    args.status.parent.mkdir(parents=True, exist_ok=True)
+    args.status.write_text(json.dumps(status, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps(status, ensure_ascii=False), flush=True)

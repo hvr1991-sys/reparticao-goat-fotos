@@ -25,6 +25,8 @@ Cada execução mantém plantão de aproximadamente 50 minutos, consulta a fila 
 
 A configuração atual limita a produção a três cards por rodada. Magnific tem limites de geração por execução e por dia; seu diário persistido permite retomar tarefas conhecidas sem gerar outra vez. Respostas de limite do OpenRouter respeitam os tempos de espera informados pelo serviço. Não há fallback pago, recarga automática implementada ou troca automática para Gemini.
 
+Antes da rodada, o executor consulta a cota gratuita por `GET /api/v1/key`, sem inferência. A espera é salva em `.goat-state/openrouter.json` e restaurada no próximo plantão. Quando a cota diária chega a zero, aguarda a renovação do dia UTC; outros limites respeitam `Retry-After` e `X-RateLimit-Reset`. Os nove cargos ficam em `aguardando`, com horário em Brasília. Pedidos novos permanecem pendentes e uma rodada interrompida não é marcada como concluída. O executor volta a conferir a disponibilidade automaticamente, enquanto mantém a fila de arquivos e pedidos em funcionamento.
+
 O painel distingue atividade recente, espera e ausência de atualização pelos registros reais. Estar na fila não significa que uma arte já tenha sido aprovada.
 
 ## Fotos e arquivos
@@ -40,6 +42,8 @@ O painel distingue atividade recente, espera e ausência de atualização pelos 
 **GOAT consolidated release verification** é a conferência de liberação. Ela verifica os arquivos originais, quatro composições, autenticação Magnific e planejamento/revisões reais do OpenRouter. Em `main`, lê o contexto privado e executa uma rodada dos nove cargos em memória, sem gravar no banco. O artifact público contém somente amostras controladas, contagens, hashes e diagnósticos sanitizados.
 
 Quando a alteração é apenas editorial, **GOAT authenticated editorial verification** confere essa etapa em `main` sem repetir chamadas visuais já verificadas. A verificação completa permanece disponível por execução manual; uma liberação combina a evidência visual válida com a conferência editorial correspondente.
+
+As verificações editoriais agora são manuais, para não consumir cota gratuita a cada alteração. O artifact `goat-provider-status` do plantão registra apenas contadores gratuitos e a eventual espera; não contém chaves, saldos, identidade da conta, prompts ou conteúdo privado. Uma cota disponível não comprova disponibilidade de inferência do provedor.
 
 Testes antigos de Gemini e rotas alternativas foram desativados e mantidos no histórico. Uma resposta simulada não comprova funcionamento dos provedores. Uma aprovação técnica de amostra não substitui a aprovação editorial humana.
 

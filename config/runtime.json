@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "visual_provider": "magnific",
   "editorial_provider": "openrouter_free",
   "max_designers_per_round": 3,

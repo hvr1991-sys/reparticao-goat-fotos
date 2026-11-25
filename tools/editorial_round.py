@@ -18,9 +18,9 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 try:
-    from .openrouter_adapter import gerar_json
+    from .openrouter_adapter import gerar_json, require_available
 except ImportError:
-    from openrouter_adapter import gerar_json
+    from openrouter_adapter import gerar_json, require_available
 
 AGENTS = (
     "goat-gerente-geral", "goat-analista", "goat-analista-brasil",
@@ -224,13 +224,39 @@ def _ask(snapshot, agent, task, data, generator, validator, schema, image_parts=
 
 
 def _error_metadata(exc):
-    """Copy only provider enums, public model IDs, counts and validator hashes."""
+    """Copy bounded retry metadata, enums, public model IDs, counts and hashes."""
     codes = {"provider_unavailable", "incomplete_response", "unexpected_model", "unexpected_cost",
              "empty_response", "call_budget", "retry_wait", "invalid_json", "invalid_contract"}
     result = {}
     code = getattr(exc, "code", None)
     if isinstance(code, str) and code in codes:
         result["code"] = code
+    for name in ("http_status", "status"):
+        status = getattr(exc, name, None)
+        if type(status) is int and 100 <= status <= 599:
+            result["http_status"] = status
+            break
+    scopes = {"upstream_provider_shared_pool", "openrouter_free_tier_per_minute",
+              "openrouter_free_tier_per_day", "unknown"}
+    for name in ("limit_scope", "scope"):
+        scope = getattr(exc, name, None)
+        if isinstance(scope, str) and scope in scopes:
+            result["limit_scope"] = scope
+            break
+    retry_after = getattr(exc, "retry_after", None)
+    if type(retry_after) is int and 0 <= retry_after <= 31_536_000:
+        result["retry_after"] = retry_after
+    retry_at = getattr(exc, "retry_at", None)
+    try:
+        when = (datetime.fromisoformat(retry_at.replace("Z", "+00:00"))
+                if isinstance(retry_at, str) and len(retry_at) <= 64 else retry_at)
+        if isinstance(when, datetime) and when.tzinfo is not None and when.utcoffset() is not None:
+            result["retry_at"] = when.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    except (ValueError, TypeError, OverflowError):
+        pass
+    if "retry_at" not in result and result.get("retry_after", 0) > 0:
+        when = datetime.now(timezone.utc) + timedelta(seconds=result["retry_after"])
+        result["retry_at"] = when.isoformat().replace("+00:00", "Z")
     diagnostics = getattr(exc, "diagnostics", None)
     if isinstance(diagnostics, dict):
         safe = {key: value for key, value in diagnostics.items()
@@ -543,6 +569,8 @@ def executar(snapshot=None, transport: Callable | None = None, dry_run=False,
                 started[0] = True
         snapshot["_on_model_call"] = announce
         try:
+            if generator is gerar_json:
+                require_available()
             # The role function decides whether useful work exists before calling AI.
             actions = function(agent)
             if not actions:

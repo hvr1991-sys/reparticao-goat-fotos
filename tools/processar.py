@@ -14,7 +14,9 @@ Fica de plantão por ~50 minutos olhando a fila a cada 30 s. Os resultados só s
 informados ao Supabase depois do git push, para a rodada já achar os arquivos aqui.
 """
 import copy, hashlib, io, json, os, re, subprocess, sys, time, urllib.parse, urllib.request
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parent.parent
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
@@ -412,20 +414,62 @@ def designers_goat(max_cards=3):
     return {"results": results, "claimed": len(cards)}
 
 
+def aguardar_provedor(state):
+    """Persist honest agent states without claiming/finishing requests or cards."""
+    import editorial_round
+    if state.get("status") == "waiting_run_budget":
+        message = "Limite deste plantão; retomada automática no próximo"
+    else:
+        label = "cota gratuita diária" if state.get("limit_scope") == "openrouter_free_tier_per_day" else "limite temporário"
+        instant = datetime.fromisoformat(state["retry_at"].replace("Z", "+00:00")).astimezone(ZoneInfo("America/Sao_Paulo"))
+        message = f"OpenRouter: {label}; retomada após {instant:%d/%m %H:%M} (Brasília)"
+    actions = [{"agent": agent, "kind": "status", "patch": {"status": "aguardando", "task": message[:120]}}
+               for agent in editorial_round.AGENTS]
+    result = api("agentes-resultados", {"actions": actions})
+    if result.get("ok") is not True or len(result.get("results", [])) != len(actions) or any(x.get("status") != "applied" for x in result["results"]):
+        raise RuntimeError("Espera do provedor não foi confirmada pelo painel")
+    print(message + ". Pedidos preservados para retomada automática.", flush=True)
+    return {"waiting_provider": state, "retry_after": min(600, max(20, state.get("retry_after", 600)))}
+
+
 def rodada_goat():
     """One coherent round. Human approval stages remain human."""
     if not runtime_config().get("enabled"):
         return {"enabled": False}
     sys.path.insert(0, str(ROOT / "tools"))
     import editorial_round
+    import openrouter_adapter
+    state = openrouter_adapter.provider_status(refresh=True)
+    if state["status"].startswith("waiting_"):
+        return aguardar_provedor(state)
     report = editorial_round.executar(transport=api, phases=("research", "coordinate", "develop", "reels"))
+    state = openrouter_adapter.provider_status()
+    if state["status"].startswith("waiting_"):
+        return {**aguardar_provedor(state), "editorial": report}
     produced = designers_goat(int(runtime_config().get("max_designers_per_round", 3)))
+    state = openrouter_adapter.provider_status()
+    if state["status"].startswith("waiting_"):
+        return {**aguardar_provedor(state), "editorial": report, "production": produced}
     quality = editorial_round.executar(transport=api, phases=("quality",))
+    state = openrouter_adapter.provider_status()
+    if state["status"].startswith("waiting_"):
+        return {**aguardar_provedor(state), "editorial": report, "production": produced, "quality": quality}
     successful = sum(x.get("status") == "delivered" for x in produced.get("results", []))
     blocked = max(0, produced.get("claimed", len(produced.get("results", []))) - successful)
     summary = f"Rodada concluída: {successful} artes entregues, {blocked} pendências de produção. Aprovação final permanece com o Gestor."
     if report.get("errors") or quality.get("errors") or produced.get("error"):
         summary += " Há tarefas aguardando dados, revisão ou provedor; consulte os registros."
+    waiting = [x for x in produced.get("results", []) if x.get("status") == "waiting_provider"]
+    if waiting:
+        providers = sorted({x.get("provider", "Provedor visual") for x in waiting})
+        message = ", ".join(providers) + ": entrega aguardando; retomada automática preservada"
+        receipt = api("agentes-resultados", {"actions": [{"agent": "goat-gerente-geral", "kind": "status",
+                      "patch": {"status": "aguardando", "task": message[:120]}}]})
+        if receipt.get("ok") is not True or [x.get("status") for x in receipt.get("results", [])] != ["applied"]:
+            raise RuntimeError("Espera visual não foi confirmada pelo painel")
+        print(message + ". O pedido continua em andamento.", flush=True)
+        return {"waiting_provider": {"status": "waiting_visual"}, "retry_after": 1800,
+                "editorial": report, "production": produced, "quality": quality}
     # Completing an operational request does not mean its artwork was approved.
     receipt = editorial_round.concluir_pedidos(report.get("requests") or [], summary, api)
     if receipt.get("ok") is not True or any(r.get("status") not in ("applied", "already_applied") for r in receipt.get("results", [])):
@@ -454,7 +498,9 @@ def vigiar(minutos):
                 chamar("POST", results)
             if time.time() >= next_round:
                 next_round = time.time() + 1800
-                rodada_goat()
+                result = rodada_goat()
+                if result.get("waiting_provider"):
+                    next_round = time.time() + result["retry_after"]
         except Exception as e:
             print("Rodada com pendência:", str(e)[:300], flush=True)
         time.sleep(20)

@@ -337,7 +337,8 @@ def produzir(card, docs, baixar_fotos, montar, informar, publicar=None):
     except (ProviderUnavailable, magnific_adapter.MagnificUnavailable) as e:
         informar({"id": cid, "designer": designer, "task": "Aguardando provedor", "awaiting": True,
                   "note": str(e)[:400], "log": str(e)[:400]})
-        return {"status": "waiting_provider", "error": str(e)}
+        return {"status": "waiting_provider", "error": str(e),
+                "provider": "Magnific" if isinstance(e, magnific_adapter.MagnificUnavailable) else "OpenRouter"}
     except Exception as e:
         message = str(e)[:500]
         informar({"id": cid, "designer": designer, "task": "Ajuste pendente", "awaiting": True,

@@ -15,7 +15,7 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -33,6 +33,8 @@ HEADLINES = ["SUA PAIXÃO", "PELO JOGO"]
 ERROR_CODES = frozenset({"provider_unavailable", "incomplete_response", "unexpected_model",
     "unexpected_cost", "empty_response", "call_budget", "retry_wait", "invalid_json", "invalid_contract"})
 FINISH_REASONS = frozenset({"stop", "length", "content_filter", "tool_calls", "error", "unknown"})
+LIMIT_SCOPES = frozenset({"upstream_provider_shared_pool", "openrouter_free_tier_per_minute",
+                          "openrouter_free_tier_per_day", "unknown"})
 
 
 class ReleaseFailure(RuntimeError):
@@ -54,7 +56,7 @@ def _provider_record(phase):
 
 
 def _safe_error_metadata(source):
-    """Only provider enums, counts, a catalog model ID and a validator hash are public."""
+    """Only provider enums, counts, retry timing, model ID and validator hash are public."""
     get = source.get if isinstance(source, dict) else lambda key, default=None: getattr(source, key, default)
     result = {}
     code = get("code")
@@ -63,6 +65,25 @@ def _safe_error_metadata(source):
     finish = get("finish_reason")
     if isinstance(finish, str) and finish in FINISH_REASONS:
         result["finish_reason"] = finish
+    for key in ("http_status", "status"):
+        value = get(key)
+        if type(value) is int and 100 <= value <= 599:
+            result["http_status"] = value
+            break
+    for key in ("limit_scope", "scope"):
+        value = get(key)
+        if isinstance(value, str) and value in LIMIT_SCOPES:
+            result["limit_scope"] = value
+            break
+    value = get("retry_after")
+    if type(value) is int and 0 <= value <= 31_536_000:
+        result["retry_after"] = value
+    value = get("retry_at")
+    if isinstance(value, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})", value):
+        try:
+            result["retry_at"] = datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc).isoformat()
+        except (ValueError, OverflowError):
+            pass
     raw = get("diagnostics")
     diagnostics = {}
     if isinstance(raw, dict):
@@ -94,7 +115,6 @@ def _public_error(error, stage=None):
         return {"type": type(error).__name__, "reason": str(error)[:320]}
     if isinstance(error, openrouter_adapter.ProviderUnavailable):
         return {"type": type(error).__name__, "reason": "OpenRouter gratuito indisponível; nenhuma aprovação presumida",
-                "http_status": error.status, "retry_after": error.retry_after, "scope": error.scope,
                 **_safe_error_metadata(error)}
     if isinstance(error, magnific_adapter.MagnificUnavailable):
         code = re.search(r"HTTP (\d{3})", str(error))

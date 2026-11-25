@@ -38,8 +38,23 @@ jobs:
           path: fotos/_magnific_tasks.json
           key: magnific-main-${{ github.run_id }}
           restore-keys: magnific-main-
+      - uses: actions/cache/restore@v4
+        with:
+          path: .goat-state/openrouter.json
+          key: openrouter-main-${{ github.run_id }}
+          restore-keys: openrouter-main-
       # o runner já tem o Google Chrome; o kit e o robô usam ele (sem baixar outro navegador)
       - run: pip install pillow==11.1.0 numpy==2.2.3 playwright==1.49.1 "opencv-python-headless==4.10.0.84"
+      - name: Consultar cota gratuita sem gerar conteúdo
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python -m tools.openrouter_adapter --status .goat-state/provider-status.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: goat-provider-status
+          path: .goat-state/provider-status.json
+          include-hidden-files: true
+          retention-days: 3
       - name: Plantão
         env:
           MAGNIFIC_API_KEY: ${{ secrets.MAGNIFIC_API_KEY }}
@@ -56,6 +71,11 @@ jobs:
         with:
           path: fotos/_magnific_tasks.json
           key: magnific-main-${{ github.run_id }}
+      - uses: actions/cache/save@v4
+        if: always() && hashFiles('.goat-state/openrouter.json') != ''
+        with:
+          path: .goat-state/openrouter.json
+          key: openrouter-main-${{ github.run_id }}
       # emenda o próximo plantão (o agendamento do GitHub às vezes atrasa ou não dispara)
       - name: Próximo plantão
         if: always()
