@@ -1,0 +1,36 @@
+{
+  "versao": 1,
+  "escopo": "experimental",
+  "regras_gestor": {
+    "marca": "logo",
+    "bodinho": false,
+    "fontes_fotograficas": [
+      "sites oficiais de clubes",
+      "sites oficiais de ligas",
+      "redes sociais oficiais de clubes",
+      "redes sociais oficiais de ligas"
+    ],
+    "liberdade_composicional": true,
+    "agenda_jogo_unico": "modelo oficial obrigatório",
+    "publicacao": "aprovação humana obrigatória"
+  },
+  "referencias": {
+    "modelos": "modelos/",
+    "artes_aprovadas": "consultar versão aprovada em rg_cards e rg-artes",
+    "ensinamentos": "rg_licoes",
+    "skill": "canal-goat-artes"
+  },
+  "orientacoes": [
+    "Modelos são exemplos, não lista fechada de layouts.",
+    "Escolher composição conforme a pauta e o espaço negativo da fotografia.",
+    "Preservar aparência real dos atletas e registrar procedência.",
+    "Evitar repetição visual desnecessária.",
+    "Não inventar dados, horários ou fontes.",
+    "Quando uma regra da skill não estiver disponível, sinalizar revisão pendente."
+  ],
+  "limites": {
+    "integracao_skill_completa": false,
+    "integracao_agentes": false,
+    "publicacao_automatica": false
+  }
+}
