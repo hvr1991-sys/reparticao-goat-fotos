@@ -1,23 +1,24 @@
 {
  "titulo": "AGENDA GOAT · SÁB 28.11",
- "ok": true,
- "review": "pente fino do Gemini indisponível (HTTP Error 503: Service Unavailable); passou na conferência do kit",
- "sem_foto": [],
+ "ok": false,
+ "review": "conferência do kit: CONFERÊNCIA AUTOMÁTICA REPROVOU A ARTE: card da agenda sem foto: HERTHA BERLIM X KARLSRUHER (todo jogo leva foto) | card da agenda sem foto: PADERBORN X SCHALKE 04 (todo jogo leva foto)\n",
+ "sem_foto": [
+  "HERTHA BERLIM X KARLSRUHER",
+  "PADERBORN X SCHALKE 04"
+ ],
  "spec": {
   "tipo": "agenda",
   "jogos": [
    {
     "rotulo": "BUNDESLIGA 2",
     "horario": "9H",
-    "confronto": "HERTHA BERLIM X KARLSRUHER",
-    "foto": "fotos/f5e82219-1078-40b3-ac9b-f186e8880c51-j40/3.jpg",
-    "foco": "60% 25%"
+    "confronto": "HERTHA BERLIM X KARLSRUHER"
    },
    {
     "rotulo": "SAUDI PRO LEAGUE",
     "horario": "9H15",
     "confronto": "AL HAZEM X AL NASSR",
-    "foto": "fotos/9f722766-bc0f-4d71-99a1-6c3fcdfd1fdb-j117/2.jpg",
+    "foto": "fotos/010777c4-1957-45ec-95a5-f3c375c227ac-j34/2.png",
     "foco": "60% 25%"
    },
    {
@@ -31,29 +32,27 @@
     "rotulo": "BUNDESLIGA",
     "horario": "11H30",
     "confronto": "COLÔNIA X ELVERSBERG",
-    "foto": "fotos/40370937-a2ac-4ed0-a538-a6f9e8d9da0a-j86/1.jpg",
-    "foco": "50% 0%"
+    "foto": "fotos/40370937-a2ac-4ed0-a538-a6f9e8d9da0a-j85/3.jpg",
+    "foco": "60% 25%"
    },
    {
     "rotulo": "BUNDESLIGA",
     "horario": "11H30",
-    "confronto": "PADERBORN X SCHALKE 04",
-    "foto": "fotos/8d43c997-a99f-4cc5-a2d3-34d0f7d5bfb4-j84/2.jpg",
-    "foco": "50% 35%"
+    "confronto": "PADERBORN X SCHALKE 04"
    },
    {
     "rotulo": "SAUDI PRO LEAGUE",
     "horario": "14H30",
     "confronto": "AL AHLI X AL TAAWOUN",
-    "foto": "fotos/f16acadf-8290-4373-bbfd-6440d848a0a4/2.png",
-    "foco": "50% 94%"
+    "foto": "fotos/f16acadf-8290-4373-bbfd-6440d848a0a4/1.png",
+    "foco": "50% 0%"
    },
    {
     "rotulo": "LIBERTADORES",
     "horario": "17H",
     "confronto": "PALMEIRAS X ESTUDIANTES",
-    "foto": "fotos/eec11253-8d51-481a-b471-6090728760af-j105/2.png",
-    "foco": "50% 47%"
+    "foto": "fotos/eec11253-8d51-481a-b471-6090728760af-j105/1.png",
+    "foco": "60% 25%"
    }
   ],
   "marca": "logo",
