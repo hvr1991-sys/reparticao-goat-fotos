@@ -27,6 +27,16 @@ class TestCompositor(unittest.TestCase):
                 s=fixture()
                 change(s)
                 with self.assertRaises(ValueError): c.build(s)
+    def test_logo_only(self):
+        import render_v2
+        s=fixture()
+        s["marca"]="bodinho"
+        with self.assertRaisesRegex(ValueError,"logo"):
+            c.build(s)
+        for tipo in render_v2.LAYOUTS:
+            with self.subTest(tipo=tipo):
+                with self.assertRaisesRegex(ValueError,"logo"):
+                    render_v2.build(dict(tipo=tipo,marca="bodinho"))
     def test_source(self):
         with self.assertRaises(ValueError): c.asset(dict(arquivo="../secret.png",fonte="https://example.org"))
     def test_face(self):
