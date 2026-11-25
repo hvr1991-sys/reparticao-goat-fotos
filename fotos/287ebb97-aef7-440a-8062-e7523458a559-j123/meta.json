@@ -1,0 +1,27 @@
+{
+  "id": "287ebb97-aef7-440a-8062-e7523458a559-j123",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 1280,
+      "altura": 724,
+      "url_imagem": "https://media-cdn.cortextech.io/58a46b19-0352-42bf-812f-f20ad50aff24.jpg?crop=1280%3A724%3Anowe%3A0%3A554",
+      "pagina": "https://www.ittihadclub.sa/en/news/conceicao-speaks-ahead-of-key-fixtures",
+      "credito": "Al Ittihad",
+      "rotulo": "Conceição Al Ittihad",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/hmtfu23qqkxuqaybbh13",
+      "pagina": "https://www.spl.com.sa/en/news/mw5-talking-points-conceicao-debut-drama-hat-tricks-aplenty-al-taawoun-thrive",
+      "credito": "Saudi Pro League",
+      "rotulo": "Conceição estreia",
+      "baixa_resolucao": false
+    }
+  ]
+}
