@@ -1,10 +1,12 @@
-name: Teste de arte GOAT sem Claude
+name: Arquivado - Teste de arte GOAT sem Claude
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   arte:
+    # Preservado no histórico; o fluxo ativo usa Magnific e OpenRouter gratuito.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:

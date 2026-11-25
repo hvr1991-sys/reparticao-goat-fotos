@@ -1,0 +1,46 @@
+name: GOAT consolidated release verification
+on:
+  workflow_dispatch:
+  push:
+    branches: [ia-goat-original, main]
+    paths:
+      - .github/workflows/goat-round-preview.yml
+      - tools/verify_release.py
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: goat-release-verification-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Preparar renderizador
+        run: pip install pillow==11.1.0 numpy==2.2.3 playwright==1.49.1
+      - name: Preparar navegador
+        run: |
+          if [ ! -x /usr/bin/google-chrome ]; then
+            python -m playwright install --with-deps chromium
+          fi
+      - name: Verificar fluxo real sem gravar no banco
+        env:
+          MAGNIFIC_API_KEY: ${{ secrets.MAGNIFIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GOAT_MAX_LLM_CALLS: '24'
+          GOAT_MAX_VISUAL_PER_RUN: '0'
+        run: python -m tools.verify_release --live --output /tmp/goat-release-verification
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: goat-release-verification
+          path: /tmp/goat-release-verification/
+          retention-days: 7
+          if-no-files-found: warn

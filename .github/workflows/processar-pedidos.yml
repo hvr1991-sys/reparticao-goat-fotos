@@ -10,6 +10,9 @@ on:
   schedule:
     - cron: "*/10 * * * *"
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [config/runtime.json]
 
 permissions:
   contents: write
@@ -18,10 +21,11 @@ permissions:
 
 concurrency:
   group: processar-pedidos
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
   plantao:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 58
     steps:
@@ -29,13 +33,29 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/cache/restore@v4
+        with:
+          path: fotos/_magnific_tasks.json
+          key: magnific-main-${{ github.run_id }}
+          restore-keys: magnific-main-
       # o runner já tem o Google Chrome; o kit e o robô usam ele (sem baixar outro navegador)
-      - run: pip install pillow==11.1.0 numpy playwright==1.49.1 "opencv-python-headless==4.10.0.84"
+      - run: pip install pillow==11.1.0 numpy==2.2.3 playwright==1.49.1 "opencv-python-headless==4.10.0.84"
       - name: Plantão
+        env:
+          MAGNIFIC_API_KEY: ${{ secrets.MAGNIFIC_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GOAT_MAX_LLM_CALLS: "40"
+          GOAT_MAX_VISUAL_PER_RUN: "2"
+          GOAT_MAX_VISUAL_PER_DAY: "8"
         run: |
           git config user.name "reparticao-goat-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           python tools/processar.py 50
+      - uses: actions/cache/save@v4
+        if: always() && hashFiles('fotos/_magnific_tasks.json') != ''
+        with:
+          path: fotos/_magnific_tasks.json
+          key: magnific-main-${{ github.run_id }}
       # emenda o próximo plantão (o agendamento do GitHub às vezes atrasa ou não dispara)
       - name: Próximo plantão
         if: always()

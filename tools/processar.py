@@ -13,7 +13,7 @@ A rodada agendada grava pedidos na tabela rg_jobs do Supabase; este script busca
 Fica de plantão por ~50 minutos olhando a fila a cada 30 s. Os resultados só são
 informados ao Supabase depois do git push, para a rodada já achar os arquivos aqui.
 """
-import io, json, os, re, subprocess, sys, time, urllib.parse, urllib.request
+import copy, hashlib, io, json, os, re, subprocess, sys, time, urllib.parse, urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -43,51 +43,97 @@ def fotos(job):
 
 
 def resolver(spec):
-    """Troca caminhos relativos de foto por absolutos, só dentro de fotos/."""
+    """Resolve only local authorized photos; never accept model-invented file/URL paths."""
+    spec = copy.deepcopy(spec)
     base = (ROOT / "fotos").resolve()
 
-    def fix(v):
-        if isinstance(v, str) and v.startswith("equipe:"):
-            return v  # foto da equipe: o kit/render.py resolve a partir de equipe/private/
-        p = (ROOT / v).resolve()
-        if base not in p.parents or not p.exists():
-            raise ValueError(f"foto fora de fotos/ ou inexistente: {v}")
-        return str(p)
+    def fix(value):
+        if isinstance(value, str) and value.startswith("equipe:"):
+            return value
+        if not isinstance(value, str):
+            raise ValueError("caminho de imagem inválido")
+        path = (ROOT / value).resolve()
+        if base not in path.parents or not path.is_file():
+            raise ValueError("foto fora da biblioteca autorizada ou inexistente")
+        return str(path)
 
-    for k in ("foto", "fundo"):
-        if spec.get(k):
-            spec[k] = fix(spec[k])
-    for j in spec.get("jogos", []) or []:
-        if j.get("foto"):
-            j["foto"] = fix(j["foto"])
+    for key in ("foto", "fundo", "foto2", "foto_superior", "foto_inferior"):
+        if spec.get(key):
+            spec[key] = fix(spec[key])
+    if isinstance(spec.get("fotos"), list):
+        spec["fotos"] = [fix(x) for x in spec["fotos"]]
+    for item in spec.get("jogos") or []:
+        if item.get("foto"):
+            item["foto"] = fix(item["foto"])
     return spec
 
 
-def arte(job, token):
-    card = job["card_id"]
-    p = job.get("payload") or {}
-    n = int(p.get("n") or 1)
-    if not UUID.match(card) or not 1 <= n <= 6:
-        return "erro", {"erro": "card ou n inválido"}
-    spec = resolver(dict(p.get("spec") or {}))
-    (ROOT / "arts").mkdir(exist_ok=True)
-    out = ROOT / "arts" / (f"{card}.png" if n == 1 else f"{card}-{n}.png")
-    tmp = Path("/tmp") / f"spec-{job['id']}.json"
-    tmp.write_text(json.dumps(spec, ensure_ascii=False), encoding="utf-8")
-    env = {**os.environ, "RG_EXIGIR_EQUIPE": "1"}
-    if p.get("edicao_gestor"):
-        env["RG_SEM_CONFERENCIA"] = "1"  # edição direta do Gestor no painel: a decisão é dele
-    r = subprocess.run([sys.executable, str(ROOT / "kit" / "render.py"), str(tmp), str(out)], capture_output=True, text=True, env=env)
-    if r.returncode != 0 or not out.exists():
-        return "erro", {"erro": (r.stderr or r.stdout)[-800:]}
-    req = urllib.request.Request(f"{UPLOAD}?card={card}&n={n}", data=out.read_bytes(), method="POST",
-                                 headers={"Authorization": "Bearer " + token, "Content-Type": "image/png"})
+def renderizar_arte(card_id, spec, n=1, edicao_gestor=False):
+    """Render locally. This function has no network/upload/database side effects."""
+    if not UUID.fullmatch(str(card_id)) or not 1 <= n <= 6:
+        return "erro", {"erro": "card ou página inválido"}, None
+    folder = ROOT / ".goat-state" / "previews"
+    folder.mkdir(parents=True, exist_ok=True)
+    out = folder / f"{card_id}-{n}.png"
+    tmp = folder / f"{card_id}-{n}.json"
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            up = json.load(resp)
+        resolved = resolver(spec)
+        tmp.write_text(json.dumps(resolved, ensure_ascii=False), encoding="utf-8")
+        env = {**os.environ, "RG_EXIGIR_EQUIPE": "1"}
+        if edicao_gestor:
+            env["RG_SEM_CONFERENCIA"] = "1"
+        result = subprocess.run([sys.executable, str(ROOT / "kit" / "render.py"), str(tmp), str(out)],
+                                capture_output=True, text=True, env=env, timeout=90)
+        if result.returncode != 0 or not out.exists():
+            return "erro", {"erro": (result.stderr or result.stdout)[-700:]}, None
+        return "feito", {"arquivo": str(out.relative_to(ROOT)), "sha256": hashlib.sha256(out.read_bytes()).hexdigest()}, out
     except Exception as e:
-        return "erro", {"erro": f"arte montada, mas o envio ao painel falhou: {e}", "arquivo": str(out.relative_to(ROOT))}
-    return "feito", {"arquivo": str(out.relative_to(ROOT)), "art_path": up.get("path")}
+        return "erro", {"erro": str(e)[:400]}, None
+
+
+def publicar_arte(png, card_id, n=1, token=None):
+    """Upload exactly the bytes that were reviewed; never re-render here."""
+    if not UUID.fullmatch(str(card_id)) or not 1 <= n <= 6:
+        return "erro", {"erro": "card ou página inválido"}
+    data = Path(png).read_bytes()
+    if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) > 8 * 1024 * 1024:
+        return "erro", {"erro": "PNG inválido ou maior que8MB"}
+    request = urllib.request.Request(f"{UPLOAD}?card={card_id}&n={n}", data=data, method="POST",
+        headers={"Authorization": "Bearer " + (token or oidc()), "Content-Type": "image/png"})
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            uploaded = json.load(response)
+        if uploaded.get("ok") is not True or not uploaded.get("path"):
+            raise ValueError("o painel não confirmou o arquivo")
+    except Exception as e:
+        return "erro", {"erro": f"envio da arte revisada falhou ({type(e).__name__})"}
+    (ROOT / "arts").mkdir(exist_ok=True)
+    target = ROOT / "arts" / (f"{card_id}.png" if n == 1 else f"{card_id}-{n}.png")
+    target.write_bytes(data)
+    return "feito", {"arquivo": str(target.relative_to(ROOT)), "art_path": uploaded["path"],
+                     "sha256": hashlib.sha256(data).hexdigest()}
+
+
+def arte(job, token):
+    payload = job.get("payload") or {}
+    n = int(payload.get("n") or 1)
+    status, result, png = renderizar_arte(job["card_id"], payload.get("spec") or {}, n,
+                                       edicao_gestor=payload.get("edicao_gestor") is True)
+    if status != "feito":
+        return status, result
+    if payload.get("edicao_gestor") is not True:
+        # Queued automated artwork must pass the same visual gate as the designer.
+        try:
+            import designer_openrouter
+            snapshot = api("contexto")
+            card = next(c for c in snapshot["cards"] if c["id"] == job["card_id"])
+            card["_lessons"] = snapshot.get("lessons") or []
+            ok, reason = designer_openrouter.revisar_arte(png, card, payload.get("spec"), snapshot.get("docs"))
+            if not ok:
+                return "erro", {"erro": "revisão visual: " + reason[:500]}
+        except Exception as e:
+            return "erro", {"erro": "revisão obrigatória indisponível: " + str(e)[:300]}
+    return publicar_arte(png, job["card_id"], n, token)
 
 
 JOBS_URL = "https://llmigqclpddpzcvpeufi.supabase.co/functions/v1/rg-jobs"
@@ -177,7 +223,7 @@ def _miniatura(arquivo):
         json.load(r)
 
 
-def equipe_privada():
+def equipe_privada(upload_thumbs=True):
     """Abre as fotos da equipe e manda ao painel as miniaturas que faltam."""
     try:
         chave = _chave_equipe()
@@ -191,6 +237,8 @@ def equipe_privada():
                 subprocess.run(["openssl", "enc", "-d", "-aes-256-cbc", "-pbkdf2", "-in", str(enc), "-out", str(out), "-pass", "env:EQ_KEY"],
                                check=True, env={**os.environ, "EQ_KEY": chave})
         print("fotos da equipe prontas:", len(list(EQUIPE_PRIV.glob("*.jpg"))), flush=True)
+        if not upload_thumbs:
+            return
         req = urllib.request.Request(JOBS_URL + "?acao=equipe-pendentes", headers={"Authorization": "Bearer " + oidc()})
         with urllib.request.urlopen(req, timeout=60) as r:
             pend = json.load(r)
@@ -284,84 +332,132 @@ def fontes_privadas():
         print("sem fontes privadas:", e, flush=True)
 
 
-def designers_gemini():
-    """Designers no Gemini: produz as artes dos cards em produção (se houver GEMINI_API_KEY)."""
-    # Gemini pausado pelo Gestor: para religar, devolva GEMINI_API_KEY ao passo "Plantão" do workflow.
-    if not os.environ.get("GEMINI_API_KEY"):
-        return False
+def api(acao, body=None, **params):
+    query = urllib.parse.urlencode({"acao": acao, **params})
+    request = urllib.request.Request(JOBS_URL + "?" + query,
+        data=json.dumps(body, ensure_ascii=False).encode() if body is not None else None,
+        method="POST" if body is not None else "GET",
+        headers={"Authorization": "Bearer " + oidc(), "Content-Type": "application/json"})
+    with urllib.request.urlopen(request, timeout=60) as response:
+        return json.load(response)
+
+
+def runtime_config():
+    path = ROOT / "config" / "runtime.json"
+    return json.loads(path.read_text()) if path.exists() else {"enabled": False}
+
+
+def designers_goat(max_cards=3):
+    """Three original designers, real skill, reviewed photos, Magnific visual resources."""
+    if not os.environ.get("OPENROUTER_API_KEY"):
+        return {"results": [], "error": "OpenRouter não configurado"}
     sys.path.insert(0, str(ROOT / "tools"))
-    import gemini
-    req = urllib.request.Request(JOBS_URL + "?acao=producao&n=3", headers={"Authorization": "Bearer " + oidc()})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        lote = json.load(r)
+    import designer_openrouter
+    lote = api("producao", n=max_cards)
     cards = lote.get("cards") or []
-    if not cards:
-        return False
-    token = oidc()
+    results = []
 
-    def baixar_fotos(card_id, itens, tag):
-        pasta = f"{card_id}-{tag}"
-        (ROOT / "jobs").mkdir(exist_ok=True)
-        (ROOT / "jobs" / f"{pasta}.json").write_text(json.dumps({"id": pasta, "fotos": itens}, ensure_ascii=False), encoding="utf-8")
-        meta = ROOT / "fotos" / pasta / "meta.json"
-        if meta.exists():
-            meta.unlink()
-        subprocess.run([sys.executable, str(ROOT / "tools" / "baixar.py")], check=False)
+    def baixar_fotos(card_id, items, tag):
+        import baixar
+        suffix = hashlib.sha256(json.dumps(items, sort_keys=True).encode()).hexdigest()[:12]
+        folder = ROOT / "fotos" / f"{card_id}-{tag}-{suffix}"
+        folder.mkdir(parents=True, exist_ok=True)
+        meta = folder / "meta.json"
         if not meta.exists():
-            return f"fotos/{pasta}", []
-        m = json.loads(meta.read_text(encoding="utf-8"))
-        return f"fotos/{pasta}", [(f"fotos/{pasta}/{f['arquivo']}", f) for f in m.get("fotos", []) if f.get("ok")]
-
-    def montar(card_id, spec):
-        status, result = arte({"id": f"g-{card_id[:8]}", "card_id": card_id, "payload": {"n": 1, "spec": spec}}, oidc())
-        png = ROOT / result["arquivo"] if result.get("arquivo") else None
-        return status, result, png
+            photos = []
+            for n, item in enumerate(items[:4], 1):
+                try:
+                    photos.append({"ok": True, **baixar.baixar(item, folder, n)})
+                except Exception:
+                    photos.append({"ok": False, "pagina": item.get("url"), "erro": "foto oficial indisponível"})
+            meta.write_text(json.dumps({"id": folder.name, "fotos": photos}, ensure_ascii=False, indent=2))
+        data = json.loads(meta.read_text())
+        return str(folder.relative_to(ROOT)), [(str((folder / f["arquivo"]).relative_to(ROOT)), f)
+            for f in data["fotos"] if f.get("ok") is True]
 
     def informar(body):
-        salvar_no_repo()
-        req = urllib.request.Request(JOBS_URL + "?acao=card", data=json.dumps(body).encode(), method="POST",
-                                     headers={"Authorization": "Bearer " + oidc(), "Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=60) as r:
-            r.read()
+        # Includes the Magnific task ledger, even when a task is pending/uncertain.
+        if not salvar_no_repo():
+            raise RuntimeError("Falha ao preservar arquivos e tarefas no repositório")
+        result = api("card", body)
+        if result.get("ok") is not True:
+            raise RuntimeError("O painel não confirmou a atualização do card")
 
-    for c in cards:
-        print("Gemini produzindo:", c["title"], flush=True)
-        gemini.produzir(c, lote.get("docs") or [], baixar_fotos, montar, informar)
-    return True
+    def publicar(card_id, png, n):
+        return publicar_arte(png, card_id, n)
+
+    used_by_day = {}
+    for card in cards:
+        card["_lessons"] = lote.get("lessons") or []
+        card["_equipe"] = card.get("equipe") or lote.get("equipe") or []
+        recent = used_by_day.setdefault(card.get("pub_date"), {"hashes": [], "files": [], "urls": []})
+        for kind in recent:
+            key = "used_photo_" + kind
+            card[key] = list(set(card.get(key) or []) | set(recent[kind]))
+        result = designer_openrouter.produzir(card, lote.get("docs") or [], baixar_fotos,
+                                             renderizar_arte, informar, publicar=publicar)
+        results.append({"id": card["id"], "designer": card["designer"], **result})
+        if result.get("status") == "delivered":
+            for sidecar in (ROOT / "arts").glob(card["id"] + "*.json"):
+                for photo in json.loads(sidecar.read_text()).get("photo_sources") or []:
+                    for kind, field in (("hashes", "sha256"), ("files", "arquivo"), ("urls", "url")):
+                        if photo.get(field):
+                            recent[kind].append(photo[field])
+        if result.get("status") == "waiting_provider":
+            # Release visible statuses for the rest; their lease expires normally.
+            for remaining in cards[len(results):]:
+                informar({"id": remaining["id"], "designer": remaining["designer"], "awaiting": True,
+                          "task": "Aguardando provedor", "log": "Rodada suspensa: provedor indisponível."})
+            break
+    return {"results": results, "claimed": len(cards)}
+
+
+def rodada_goat():
+    """One coherent round. Human approval stages remain human."""
+    if not runtime_config().get("enabled"):
+        return {"enabled": False}
+    sys.path.insert(0, str(ROOT / "tools"))
+    import editorial_round
+    report = editorial_round.executar(transport=api, phases=("research", "coordinate", "develop", "reels"))
+    produced = designers_goat(int(runtime_config().get("max_designers_per_round", 3)))
+    quality = editorial_round.executar(transport=api, phases=("quality",))
+    successful = sum(x.get("status") == "delivered" for x in produced.get("results", []))
+    blocked = max(0, produced.get("claimed", len(produced.get("results", []))) - successful)
+    summary = f"Rodada concluída: {successful} artes entregues, {blocked} pendências de produção. Aprovação final permanece com o Gestor."
+    if report.get("errors") or quality.get("errors") or produced.get("error"):
+        summary += " Há tarefas aguardando dados, revisão ou provedor; consulte os registros."
+    # Completing an operational request does not mean its artwork was approved.
+    receipt = editorial_round.concluir_pedidos(report.get("requests") or [], summary, api)
+    if receipt.get("ok") is not True or any(r.get("status") not in ("applied", "already_applied") for r in receipt.get("results", [])):
+        raise RuntimeError("O painel não confirmou o encerramento da rodada; pedido será retomado")
+    print(summary, flush=True)
+    return {"editorial": report, "production": produced, "quality": quality}
 
 
 def vigiar(minutos):
-    """Fica de plantão: olha a fila a cada 30 s e processa o que chegar."""
+    """Maintain existing job queue; run the nine-role round at a bounded interval."""
+    if os.environ.get("GITHUB_REF") != "refs/heads/main":
+        raise RuntimeError("Produção só pode executar na branch main")
     fim = time.time() + minutos * 60
-    fontes_privadas()
     equipe_privada()
-    proxima_producao = 0
+    next_round = 0
     while time.time() < fim:
         try:
             jobs = chamar("GET")
+            if jobs:
+                results = processar(jobs)
+                if not salvar_no_repo():
+                    for result in results:
+                        if result["status"] == "feito":
+                            result["status"] = "erro"
+                            result["result"] = {"erro": "falha ao preservar resultado no repositório"}
+                chamar("POST", results)
+            if time.time() >= next_round:
+                next_round = time.time() + 1800
+                rodada_goat()
         except Exception as e:
-            print("fila indisponível:", e, flush=True)
-            jobs = []
-        if jobs:
-            res = processar(jobs)
-            ok = salvar_no_repo()
-            if not ok:
-                for r in res:
-                    if r["status"] == "feito":
-                        r["status"], r["result"] = "erro", {"erro": "falha ao salvar no repositório", **(r["result"] or {})}
-            try:
-                chamar("POST", res)
-            except Exception as e:
-                print("falha ao informar resultados:", e, flush=True)
-            continue
-        if time.time() >= proxima_producao:
-            try:
-                if designers_gemini():
-                    continue
-            except Exception as e:
-                print("designers Gemini indisponíveis:", e, flush=True)
-            proxima_producao = time.time() + 120
-        time.sleep(30)
+            print("Rodada com pendência:", str(e)[:300], flush=True)
+        time.sleep(20)
 
 
 if __name__ == "__main__":
