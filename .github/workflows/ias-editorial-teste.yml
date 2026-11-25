@@ -1,10 +1,12 @@
-name: Teste editorial GOAT
+name: Arquivado - Teste editorial GOAT
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   editorial:
+    # Preservado no histórico; o fluxo ativo usa Magnific e OpenRouter gratuito.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 4
     strategy:

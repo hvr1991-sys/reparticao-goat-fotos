@@ -1,11 +1,13 @@
 # Teste da chave do Gemini (só confere se responde; nunca mostra a chave).
-name: Teste do Gemini
+name: Arquivado - Teste do Gemini
 on:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   teste:
+    # Preservado no histórico; o fluxo ativo usa Magnific e OpenRouter gratuito.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
