@@ -1,0 +1,27 @@
+{
+  "id": "ae52d691-ec6e-4ad6-acde-61d3e13e94ba-j130",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_q-good/prd/assets/site%20image/Slide_16_9_-_1_clou9h.jpg",
+      "pagina": "https://www.spl.com.sa/ar/news/761068/benzema-bond-instant-buy-in-saudi-talent-whats-in-conceicao-in-tray-at-al-ittihad",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Ittihad Benzema",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/yhezssz9sh0d0vu5gwbx",
+      "pagina": "https://www.spl.com.sa/news/i-came-to-build-glory-with-ittihad-conceicao-takes-charge-of-rsl-champions",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Ittihad Conceição",
+      "baixa_resolucao": false
+    }
+  ]
+}
