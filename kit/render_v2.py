@@ -13,6 +13,8 @@ LAYOUTS={
 }
 
 def build(spec):
+    if spec.get("marca","logo") != "logo":
+        raise ValueError("usar exclusivamente o logo GOAT")
     tipo=spec.get("tipo")
     if tipo not in LAYOUTS:
         raise ValueError("layout experimental desconhecido")
