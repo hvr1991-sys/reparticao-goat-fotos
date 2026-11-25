@@ -1,0 +1,45 @@
+{
+ "titulo": "AGENDA GOAT · SEX 27.11",
+ "ok": true,
+ "review": "pente fino do Gemini indisponível (HTTP Error 503: Service Unavailable); passou na conferência do kit",
+ "sem_foto": [],
+ "spec": {
+  "tipo": "agenda",
+  "jogos": [
+   {
+    "rotulo": "SAUDI PRO LEAGUE",
+    "horario": "11H20",
+    "confronto": "AL QADSIAH X AL FAYHA",
+    "foto": "fotos/66025979-8302-4571-9699-54ce277c39d6-j106/2.jpg",
+    "foco": "60% 25%"
+   },
+   {
+    "rotulo": "SAUDI PRO LEAGUE",
+    "horario": "14H30",
+    "confronto": "AL ITTIHAD X NEOM",
+    "foto": "fotos/986aac57-1087-4dc6-8e0a-294e28779c48-j76/1.jpg",
+    "foco": "50% 15%"
+   },
+   {
+    "rotulo": "PROGRAMA · PRÉ-JOGO DE VILA NOVA X ATLÉTICO-GO",
+    "horario": "19H",
+    "confronto": "PRELEÇÃO GOAT"
+   },
+   {
+    "rotulo": "BRASILEIRÃO SÉRIE B",
+    "horario": "20H",
+    "confronto": "VILA NOVA X ATLÉTICO-GO",
+    "foto": "fotos/ae52d691-ec6e-4ad6-acde-61d3e13e94ba-j65/1.jpg",
+    "foco": "60% 25%"
+   },
+   {
+    "rotulo": "PROGRAMA",
+    "horario": "22H",
+    "confronto": "SE FOR CHORAR MANDA ÁUDIO"
+   }
+  ],
+  "marca": "logo",
+  "data_dia_semana": "SEXTA-FEIRA",
+  "data_resto": "27 DE NOVEMBRO"
+ }
+}
