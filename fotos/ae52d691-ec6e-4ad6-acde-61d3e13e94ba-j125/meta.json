@@ -1,0 +1,27 @@
+{
+  "id": "ae52d691-ec6e-4ad6-acde-61d3e13e94ba-j125",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_q-good/prd/assets/site%20image/Slide_16_9_-_1_clou9h.jpg",
+      "pagina": "https://spl.com.sa/en/players/84058/houssem-aouar",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Ittihad King's Cup",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_q-good/prd/assets/site%20image/Slide_16_9_-_1_clou9h.jpg",
+      "pagina": "https://www.spl.com.sa/en/players/84224/steven-bergwijn",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Ittihad x Al Nassr King's Cup",
+      "baixa_resolucao": false
+    }
+  ]
+}

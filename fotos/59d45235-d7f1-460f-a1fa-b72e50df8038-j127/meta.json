@@ -1,0 +1,27 @@
+{
+  "id": "59d45235-d7f1-460f-a1fa-b72e50df8038-j127",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/v1786805287/prd/vi2fztgolprg6vhlbx84",
+      "pagina": "https://www.spl.com.sa/news/benzema-nets-one-of-three-penalties-but-neves-wants-more-from-half-perfect-al-hilal",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Hilal",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/prd/fxocdy1fd19rr9d7zaci",
+      "pagina": "https://www.spl.com.sa/news/al-hilal-capture-king-s-cup-days-out-from-al-nassr-showdown",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Hilal 2",
+      "baixa_resolucao": false
+    }
+  ]
+}

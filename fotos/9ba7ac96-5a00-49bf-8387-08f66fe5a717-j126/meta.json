@@ -1,0 +1,38 @@
+{
+  "id": "9ba7ac96-5a00-49bf-8387-08f66fe5a717-j126",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 1280,
+      "altura": 854,
+      "url_imagem": "https://s7g10.scene7.com/is/image/BORUSSIADORTMUNDGMBHANDCOKGAA/30N-Elv",
+      "pagina": "https://www.bvb.de/de/en/news/news-overview/news.html/2026/11/7/BVB-Grinds-Out-Another-Home-Win-Behind-Nmechas-Brace.html",
+      "credito": "Borussia Dortmund",
+      "rotulo": "BVB x Elversberg",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 1280,
+      "altura": 854,
+      "url_imagem": "https://s7g10.scene7.com/is/image/BORUSSIADORTMUNDGMBHANDCOKGAA/Beier-Jubel-4",
+      "pagina": "https://www.bvb.de/de/en/news/news-overview/news.html/2026/10/24/BVB-Wins-Frankfurt-Thriller-Thanks-to-Beier-Brilliance.html",
+      "credito": "Borussia Dortmund",
+      "rotulo": "BVB x Frankfurt",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "3.jpg",
+      "largura": 1280,
+      "altura": 854,
+      "url_imagem": "https://s7g10.scene7.com/is/image/BORUSSIADORTMUNDGMBHANDCOKGAA/Bellingham-Training-31",
+      "pagina": "https://www.bvb.de/de/en/news/news-overview/news.html/2026/11/18/Back-in-Dortmund-Focus-on-Gladbach.html",
+      "credito": "Borussia Dortmund",
+      "rotulo": "BVB treino",
+      "baixa_resolucao": false
+    }
+  ]
+}
