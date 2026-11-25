@@ -1,0 +1,66 @@
+name: GOAT original OpenRouter integration
+on:
+  push:
+    branches: [ia-goat-original]
+permissions:
+  contents: read
+jobs:
+  arte:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pillow==11.1.0 numpy==2.2.3 playwright==1.49.1
+      - name: Preparar navegador
+        run: |
+          if [ ! -x /usr/bin/google-chrome ]; then
+            python -m playwright install --with-deps chromium
+          fi
+      - name: Criar briefing seguro
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          mkdir -p /tmp/goat-test
+          python - <<'PY'
+          import json, re
+          from pathlib import Path
+          from tools.openrouter_adapter import gerar
+          prompt = """Teste fictício, não publicar. Canal GOAT transmite futebol. Use português brasileiro, voz de torcedor, sem inventar fatos, sem termos depreciativos. Equipe A x Equipe B é fictício. Escreva uma pergunta curta em caixa alta incentivando comentários. Responda apenas JSON: {"titulo":[{"texto":"PERGUNTA?","amarelo":false}]}. Uma ou duas linhas, cada uma até 22 caracteres."""
+          raw = gerar([{"text":prompt}], temp=0.2)
+          raw = raw.strip()
+          if raw.startswith("```"):
+              raw = re.sub(r"^\x60\x60\x60(?:json)?\s*|\s*\x60\x60\x60$", "", raw)
+          obj=json.loads(raw)
+          assert set(obj)=={"titulo"}
+          lines=obj["titulo"]
+          assert isinstance(lines,list) and 1<=len(lines)<=2
+          for line in lines:
+              assert set(line)=={"texto","amarelo"}
+              assert isinstance(line["texto"],str) and 1<=len(line["texto"].strip())<=22
+              assert isinstance(line["amarelo"],bool)
+          assert any("?" in line["texto"] for line in lines)
+          spec={"tipo":"chamada","titulo":lines,"marca":"logo","ilustrativo":True,"sobretitulo":"TESTE TECNICO","jogo":{"campeonato":"TESTE GOAT","confronto":"EQUIPE A X EQUIPE B","data":"28/11","hora":"18H"}}
+          Path("/tmp/goat-test/spec.json").write_text(json.dumps(spec,ensure_ascii=False,indent=2))
+          print("Briefing validado:",json.dumps(spec,ensure_ascii=False))
+          PY
+      - name: Renderizar com motor existente
+        run: |
+          python kit/render.py /tmp/goat-test/spec.json /tmp/goat-test/arte.png
+          python - <<'PY'
+          from PIL import Image
+          im=Image.open("/tmp/goat-test/arte.png")
+          im.verify()
+          with Image.open("/tmp/goat-test/arte.png") as im:
+              assert im.size==(1080,1350), im.size
+          print("PNG valido: 1080 x 1350. Revisao humana pendente.")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: goat-arte-teste
+          path: /tmp/goat-test/
+          retention-days: 3
