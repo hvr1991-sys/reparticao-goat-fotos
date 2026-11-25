@@ -1,0 +1,35 @@
+name: GOAT 2.0 - teste real gratuito
+on:
+  push:
+    branches: [motor-goat-2.0]
+    paths:
+      - '.github/workflows/goat-live-v2.yml'
+      - 'kit/smoke_openrouter_v2.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: goat-live-v2
+  cancel-in-progress: false
+jobs:
+  smoke:
+    if: github.ref == 'refs/heads/motor-goat-2.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pillow==11.1.0 numpy==2.2.2 playwright==1.49.1
+      - run: python -m playwright install --with-deps chromium
+      - run: PYTHONPATH=kit python kit/smoke_openrouter_v2.py
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: goat-live-v2
+          path: laboratorio-live/
+          retention-days: 7
