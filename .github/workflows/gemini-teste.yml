@@ -1,0 +1,40 @@
+# Teste da chave do Gemini (só confere se responde; nunca mostra a chave).
+name: Teste do Gemini
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  teste:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Chamar o Gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request, urllib.error
+          k = os.environ.get("GEMINI_API_KEY", "")
+          if not k:
+              raise SystemExit("SEM CHAVE: o secret GEMINI_API_KEY não chegou ao robô")
+          print("formato da chave:", k[:3] + "…", "tamanho", len(k))
+          base = "https://generativelanguage.googleapis.com/v1beta"
+          def chamar(url, corpo=None):
+              req = urllib.request.Request(url, data=json.dumps(corpo).encode() if corpo else None,
+                  headers={"x-goog-api-key": k, "Content-Type": "application/json"})
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      return json.load(r)
+              except urllib.error.HTTPError as e:
+                  print("ERRO", e.code, e.read().decode()[:600]); raise SystemExit(1)
+          modelos = chamar(f"{base}/models?pageSize=200").get("models", [])
+          gerar = [m["name"].split("/")[1] for m in modelos if "generateContent" in m.get("supportedGenerationMethods", [])]
+          print("MODELOS:", ", ".join(gerar))
+          flash = [m for m in gerar if "flash" in m and "lite" not in m and "image" not in m and "tts" not in m and "live" not in m and "audio" not in m]
+          escolhido = sorted(flash)[-1] if flash else gerar[0]
+          r = chamar(f"{base}/models/{escolhido}:generateContent",
+                     {"contents": [{"parts": [{"text": "Responda só com um título curto, em português, para um post sobre a rodada da Bundesliga."}]}]})
+          print("MODELO TESTADO:", escolhido)
+          print("RESPOSTA:", r["candidates"][0]["content"]["parts"][0]["text"].strip())
+          PY
