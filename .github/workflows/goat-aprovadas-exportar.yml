@@ -1,0 +1,38 @@
+name: Exportar artes aprovadas GOAT
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  exportar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Recuperar versoes aprovadas
+        run: |
+          python3 - <<'PY'
+          import urllib.request, concurrent.futures, pathlib, json
+          base="https://llmigqclpddpzcvpeufi.supabase.co/storage/v1/object/public/rg-artes/arts/"
+          names=["59d45235-d7f1-460f-a1fa-b72e50df8038-1-1795615557016.png","9ba7ac96-5a00-49bf-8387-08f66fe5a717-1-1795615429210.png","deab24de-124a-4b35-9d0f-1c39348055da-1-1795615301686.png","399ca7c2-a821-42d7-8509-02ed455f5125-1-1795571864721.png","609a90e4-273f-4eab-93b4-e7c7a5d3b613-1-1795571866887.png","66025979-8302-4571-9699-54ce277c39d6-1-1795550058236.png","9f722766-bc0f-4d71-99a1-6c3fcdfd1fdb-1-1795571861830.png","129625a8-f41c-4ccb-bc56-4e2c35493e54-1-1795550017774.png","e86fe282-c5f7-4e90-a9a6-66b0cfe4749b-1-1795571868635.png","90ba0dee-0846-45cd-9f01-1694ec9f855f-1-1795535777561.png","40370937-a2ac-4ed0-a538-a6f9e8d9da0a-1-1795532840215.png","8d43c997-a99f-4cc5-a2d3-34d0f7d5bfb4-1-1795528754356.png","ec381e49-a954-48b3-ae85-88935c63eae8-1-1795532510791.png","986aac57-1087-4dc6-8e0a-294e28779c48-1-1795485280668.png","b3f18912-cfa9-4c80-9ca3-1c9d3aa0a11d-1-1795468244400.png","f5e82219-1078-40b3-ac9b-f186e8880c51-1-1795463423753.png","bc232511-0f07-498e-ac1f-7c209b7e18d5-1-1795463432095.png","16e5e6b9-9416-4e3c-a9cb-abc1323e0867-1-1795463436081.png","010777c4-1957-45ec-95a5-f3c375c227ac-1-1795463503536.png","70dc9d3f-a346-49a7-b505-24e325bd1c32-1-1795450877581.png","41cfbb45-0cf1-41de-9273-a91ce01485ec-1-1795448899964.png","4b078c00-7ad3-4119-9a95-00f1e95e2997-1-1795434090551.png","f16acadf-8290-4373-bbfd-6440d848a0a4-1-1795431733754.png"]
+          out=pathlib.Path("aprovadas")
+          out.mkdir(exist_ok=True)
+          def get(name):
+              try:
+                  with urllib.request.urlopen(base+name,timeout=25) as r:
+                      data=r.read(20000001)
+                  if not data.startswith(b'\x89PNG\r\n\x1a\n') or len(data)>20000000:
+                      return {"arquivo":name,"ok":False,"erro":"PNG invalido ou grande demais"}
+                  (out/name).write_bytes(data)
+                  return {"arquivo":name,"ok":True,"bytes":len(data)}
+              except Exception as e:
+                  return {"arquivo":name,"ok":False,"erro":type(e).__name__}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+              results=list(pool.map(get,names))
+          (out/"manifesto.json").write_text(json.dumps(results,indent=2))
+          print("Recuperadas:",sum(x["ok"] for x in results),"/",len(names))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: goat-artes-aprovadas
+          path: aprovadas/
+          retention-days: 3
