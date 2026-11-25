@@ -37,6 +37,22 @@ class TestCompositor(unittest.TestCase):
             with self.subTest(tipo=tipo):
                 with self.assertRaisesRegex(ValueError,"logo"):
                     render_v2.build(dict(tipo=tipo,marca="bodinho"))
+    def test_director_handoff(self):
+        import json, diretor_v2
+        ctx=diretor_v2.preparar({"titulo":"TESTE GOAT","ilustrativo":True},"SKILL SINTETICA PARA TESTE",[],[],{})
+        spec=fixture()
+        spec.update(marca="bodinho",ilustrativo=False,fonte_dado="inventada")
+        result=diretor_v2.aceitar(json.dumps(spec),ctx)
+        self.assertEqual(result["spec"]["marca"],"logo")
+        self.assertTrue(result["spec"]["ilustrativo"])
+        self.assertIsNone(result["spec"]["fonte_dado"])
+        self.assertFalse(result["publicar"])
+        self.assertEqual(result["status"],"revisao_pendente")
+        with self.assertRaises(ValueError):
+            diretor_v2.preparar({"titulo":"TESTE"},"",[],[],{})
+        ctx["briefing"]["finalidade"]="agenda_jogo_unico"
+        with self.assertRaises(ValueError):
+            diretor_v2.aceitar(json.dumps(spec),ctx)
     def test_source(self):
         with self.assertRaises(ValueError): c.asset(dict(arquivo="../secret.png",fonte="https://example.org"))
     def test_face(self):
