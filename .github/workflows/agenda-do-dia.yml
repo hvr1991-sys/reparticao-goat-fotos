@@ -1,0 +1,36 @@
+# Robô da agenda do dia: monta a agenda com as transmissões cadastradas, fotos da biblioteca
+# (escolhidas pelo Gemini) e a equipe pelo rodízio. Sem Claude.
+# "amostra" só gera a prévia em previas/; "valer" cria o card e manda para a Mesa do Gestor.
+name: Agenda do dia (robô)
+on:
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: "amostra ou valer"
+        default: "amostra"
+      dias:
+        description: "dias AAAA-MM-DD separados por espaço (vazio = amanhã e depois)"
+        default: ""
+permissions:
+  contents: write
+  id-token: write
+concurrency:
+  group: agenda-do-dia
+  cancel-in-progress: false
+jobs:
+  agenda:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pillow==11.1.0 numpy playwright==1.49.1 "opencv-python-headless==4.10.0.84"
+      - name: Montar a agenda
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          git config user.name "reparticao-goat-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python tools/agenda_robo.py "${{ inputs.modo || 'valer' }}" ${{ inputs.dias }}
