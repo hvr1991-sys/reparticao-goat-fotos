@@ -1,0 +1,69 @@
+name: Teste de arte GOAT sem Claude
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  arte:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pillow==11.1.0 numpy==2.2.3 playwright==1.49.1
+      - name: Preparar navegador
+        run: |
+          if [ ! -x /usr/bin/google-chrome ]; then
+            python -m playwright install --with-deps chromium
+          fi
+      - name: Criar briefing seguro
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          mkdir -p /tmp/goat-test
+          python - <<'PY'
+          import json, os, urllib.request, urllib.error, re, sys
+          from pathlib import Path
+          key=os.environ.get("OPENROUTER_API_KEY")
+          if not key: sys.exit("Secret ausente")
+          prompt="""Teste tecnico ficticio, nao publicar. Equipe A x Equipe B: partida ficticia dia 28/11, 18H, campeonato TESTE GOAT. Crie uma pergunta curta e criativa para chamar o publico a comentar quem vence. Sem afirmar qualquer fato sobre equipes ou jogadores. Retorne exclusivamente JSON com campo titulo, uma lista de uma ou duas linhas, cada linha com texto (maximo 22 caracteres) e amarelo (booleano). Cada linha deve conter apenas letras, espacos e pontuacao simples. Nao inclua mais campos."""
+          body={"model":"openrouter/free","messages":[{"role":"user","content":prompt}],"max_tokens":1000}
+          req=urllib.request.Request("https://openrouter.ai/api/v1/chat/completions",data=json.dumps(body).encode(),headers={"Authorization":"Bearer "+key,"Content-Type":"application/json"})
+          try:
+              with urllib.request.urlopen(req,timeout=90) as r: d=json.load(r)
+          except urllib.error.HTTPError as e: sys.exit(f"OpenRouter HTTP {e.code}")
+          answer=d["choices"][0]["message"]["content"].strip()
+          a=json.loads(answer)
+          if not isinstance(a,dict) or set(a)!={"titulo"}: sys.exit("Estrutura inesperada")
+          lines=a["titulo"]
+          if not isinstance(lines,list) or not 1<=len(lines)<=2: sys.exit("Titulo invalido")
+          for line in lines:
+              if not isinstance(line,dict) or set(line)!={"texto","amarelo"}: sys.exit("Linha invalida")
+              t=line["texto"]
+              if not isinstance(t,str) or not 1<=len(t.strip())<=22 or not re.fullmatch(r"[A-Za-zÀ-ÖØ-öø-ÿ ?!,.'-]+",t) or not isinstance(line["amarelo"],bool): sys.exit("Texto invalido")
+          if not any("?" in l["texto"] for l in lines): sys.exit("Falta pergunta")
+          spec={"tipo":"chamada","titulo":lines,"marca":"logo","ilustrativo":True,"sobretitulo":"TESTE TECNICO","jogo":{"campeonato":"TESTE GOAT","confronto":"EQUIPE A X EQUIPE B","data":"28/11","hora":"18H"}}
+          Path("/tmp/goat-test/spec.json").write_text(json.dumps(spec,ensure_ascii=False,indent=2))
+          print("Modelo:",d.get("model"))
+          print("Briefing:",json.dumps(spec,ensure_ascii=False))
+          PY
+      - name: Renderizar com motor existente
+        run: |
+          python kit/render.py /tmp/goat-test/spec.json /tmp/goat-test/arte.png
+          python - <<'PY'
+          from PIL import Image
+          im=Image.open("/tmp/goat-test/arte.png")
+          im.verify()
+          with Image.open("/tmp/goat-test/arte.png") as im:
+              assert im.size==(1080,1350), im.size
+          print("PNG valido: 1080 x 1350. Revisao humana pendente.")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: goat-arte-teste
+          path: /tmp/goat-test/
+          retention-days: 3
