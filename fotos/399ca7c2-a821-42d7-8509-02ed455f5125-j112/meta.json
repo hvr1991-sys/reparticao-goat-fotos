@@ -1,0 +1,27 @@
+{
+  "id": "399ca7c2-a821-42d7-8509-02ed455f5125-j112",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 5256,
+      "altura": 3504,
+      "url_imagem": "https://static.internacional.com.br/cms/assets/RFD_2765_c8a8b23ce6.jpg",
+      "pagina": "https://internacional.com.br/noticias/masculino/colorado-trabalha-forte-para-reta-final-do-brasileirao",
+      "credito": "SC Internacional",
+      "rotulo": "Inter treino reta final",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 2832,
+      "altura": 1593,
+      "url_imagem": "https://static.internacional.com.br/cms/assets/treino_profi_f2e978bc1f.jpg",
+      "pagina": "https://internacional.com.br/noticias/masculino/inter-esta-pronto-para-encarar-o-vitoria-no-gigante",
+      "credito": "SC Internacional",
+      "rotulo": "Inter Beira-Rio",
+      "baixa_resolucao": false
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "9f722766-bc0f-4d71-99a1-6c3fcdfd1fdb-j111",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_ratio16_9-size60-f_webp-c_fill/v1791441622/prd/ajc4fsy2rrptr0a8tldc",
+      "pagina": "https://www.spl.com.sa/en/news/the-new-boys-how-abha-al-faisaly-and-diriyah-club-have-settled-in-rsl",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Faisaly / Diriyah",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.jpg",
+      "largura": 1920,
+      "altura": 1080,
+      "url_imagem": "https://images.spl.com.sa/image/private/t_q-good/prd/assets/site%20image/Slide_16_9_-_1_clou9h.jpg",
+      "pagina": "https://www.spl.com.sa/en/teams/al-faisaly/index",
+      "credito": "Saudi Pro League",
+      "rotulo": "Al Faisaly",
+      "baixa_resolucao": false
+    }
+  ]
+}

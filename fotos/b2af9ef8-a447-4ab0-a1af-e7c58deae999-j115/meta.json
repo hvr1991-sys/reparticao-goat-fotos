@@ -1,0 +1,27 @@
+{
+  "id": "b2af9ef8-a447-4ab0-a1af-e7c58deae999-j115",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1576,
+      "altura": 2560,
+      "url_imagem": "https://estudiantesdelaplata.com/wp-content/uploads/2026/08/cropped-logo_edlp-scaled-1-png.webp",
+      "pagina": "https://estudiantesdelaplata.com/ahora-queda-la-final/",
+      "credito": "Estudiantes de La Plata",
+      "rotulo": "Estudiantes semifinal",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1576,
+      "altura": 2560,
+      "url_imagem": "https://estudiantesdelaplata.com/wp-content/uploads/2026/08/cropped-logo_edlp-scaled-1-png.webp",
+      "pagina": "https://estudiantesdelaplata.com/este-grupo-es-muy-fuerte/",
+      "credito": "Estudiantes de La Plata",
+      "rotulo": "Estudiantes elenco",
+      "baixa_resolucao": false
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "id": "e86fe282-c5f7-4e90-a9a6-66b0cfe4749b-j114",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.jpg",
+      "largura": 1200,
+      "altura": 675,
+      "url_imagem": "https://www.vfl-wolfsburg.de/fileadmin/_processed_/9/f/csm_261121-reese-hornby-vfl-wolfsburg-4_e975273dd8.jpg",
+      "pagina": "https://www.vfl-wolfsburg.de/en/newsdetails/news-detail/detail/news/fourth-consecutive-home-win",
+      "credito": "VfL Wolfsburg",
+      "rotulo": "Wolfsburg vitória em casa",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1080,
+      "altura": 1080,
+      "url_imagem": "https://www.vfl-wolfsburg.de/fileadmin/user_upload/Logos/Vereine/logo-zinnen.png",
+      "pagina": "https://www.vfl-wolfsburg.de/matchcenter/matchcenter-maenner-2/2-bundesliga-spieltag-11-2026/2027/abpfiff",
+      "credito": "VfL Wolfsburg",
+      "rotulo": "Wolfsburg rodada 11",
+      "baixa_resolucao": false
+    }
+  ]
+}
