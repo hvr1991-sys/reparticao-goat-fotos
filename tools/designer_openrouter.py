@@ -184,11 +184,13 @@ def _art_review_contract(result):
 
 def revisar_arte(png, card, spec=None, docs=None):
     context = contexto(docs or [], card.get("designer", "goat-designer"), card.get("_lessons"), review=True)
-    facts = {k: card.get(k) for k in ("title", "brief", "note", "ceo_comment", "sources", "pub_date", "transmissoes")}
+    facts = {k: card.get(k) for k in ("title", "brief", "note", "ceo_comment", "sources", "pub_date", "transmissoes", "legenda")}
     parts = [{"text": context + "\nRevise a ARTE FINAL e compare com os dados autorizados:\n" +
         json.dumps(facts, ensure_ascii=False) + "\nSPEC:\n" + json.dumps(spec or {}, ensure_ascii=False) +
         '\nReprove dados inventados, dia/horário incorreto, texto cortado, fonte/paleta fora da skill, '
         'rosto coberto, foto errada, watermark, ausência de logo ou descumprimento do pedido. '
+        'A legenda fornecida acompanha a publicação como texto separado: confira seu conteúdo e crédito nesse campo. '
+        'Não exija a legenda escrita dentro do PNG, salvo pedido explícito no briefing. '
         'Não confunda fatos da referência com fatos do card. Retorne {"ok":true/false,"corrigir":"motivo concreto; vazio se aprovada"}.'}]
     reference_type = (spec or {}).get("tipo")
     if reference_type == "agenda" and len((spec or {}).get("jogos") or []) == 1 and (spec or {}).get("total_paginas", 1) == 1 and " X " in str(spec["jogos"][0].get("confronto", "")):
@@ -273,6 +275,7 @@ def produzir(card, docs, baixar_fotos, montar, informar, publicar=None):
             plan = planejar(card, docs, fix)
             if plan.get("pendencia"):
                 raise ValueError("Pendência: " + str(plan["pendencia"])[:400])
+            card["legenda"] = plan["legenda"]
             spec = copy.deepcopy(plan["spec"])
             spec["marca"] = "logo"
             spec.pop("fundo", None)

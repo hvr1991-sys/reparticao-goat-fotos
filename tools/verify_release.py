@@ -132,6 +132,7 @@ def designer_check(output, summary):
     docs = []
     plan = designer.planejar(card, docs)
     summary["provider_calls"].append(_provider_record("fixture_plan"))
+    card["legenda"] = plan["legenda"]
     spec = copy.deepcopy(_check_fixture_plan(plan))
     spec["marca"] = "logo"
     selected = designer._resolve_photos(spec, card["_photo_candidates"])
@@ -156,7 +157,7 @@ def designer_check(output, summary):
         raise ReleaseFailure("A imagem mudou durante a revisão final")
     # Whitelist the public controlled fixture. Never persist arbitrary model fields.
     allowed = ("tipo", "foto", "titulo", "ilustrativo", "marca", "foco", "alinhamento", "layout", "deslocar_y", "tamanho_titulo")
-    _save(output / "live-plan.json", {"fixture": "amostra técnica controlada; dados ilustrativos",
+    _save(output / "live-plan.json", {"fixture": "amostra técnica controlada; dados ilustrativos", "legenda": plan["legenda"],
         "spec": {key: spec[key] for key in allowed if key in spec},
         "photo_sha256": photo["sha256"], "photo_review_ok": ok_photo, "art_review_ok": ok_art})
     if ok_art is not True:
