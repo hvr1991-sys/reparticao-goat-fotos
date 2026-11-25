@@ -1,6 +1,9 @@
 name: Magnific isolated visual test
 on:
   workflow_dispatch:
+  push:
+    branches: [ia-goat-original]
+    paths: ['.github/workflows/magnific-visual-test.yml']
 permissions:
   contents: read
 jobs:
