@@ -153,7 +153,11 @@ def planejar(card, docs, fix=None):
     # Thumbnails give the planner actual images instead of filename guesses.
     for f in catalog[:6]:
         parts += [{"text": "Foto " + f["id"]}, imagem(ROOT / f["arquivo"], max_side=640)]
-    return gerar_json(parts, validator=_validate_plan, temp=0.25)
+    plan = gerar_json(parts, validator=_validate_plan, temp=0.25)
+    # Model output is content, never proof that an internal review already ran.
+    # Only the deterministic agenda path above can set _photos_reviewed.
+    return {key: plan.get(key) for key in
+            ("brief", "legenda", "spec", "foto_obrigatoria", "pendencia", "recurso_visual")}
 
 
 def _review_contract(r):
