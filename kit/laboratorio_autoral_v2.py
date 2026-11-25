@@ -21,29 +21,46 @@ cases=[
 report=[]
 recentes=[]
 for name,title,angle in cases:
+    attempts=[]
     try:
         brief={"titulo":title,"finalidade":"editorial","ilustrativo":True,"fonte_dado":"fixture sintetica, nao publicar" if name=="estatistica" else None}
         ctx=diretor_v2.preparar(brief,"INSTRUCOES SINTETICAS PARA TESTE, NAO SKILL ORIGINAL. Fundo escuro, logo GOAT, tipografia condensada, titulo preenchido, fotos reais sem deformacao.",[],[],photos,recentes)
         ctx["instrucoes"].append(f"Titulo literal: {title}. {angle} Use foto principal obrigatoria, titulo preenchido sem contorno, exatamente uma marca. Nao invente fatos. Varie a geometria em relacao as anteriores.")
-        result=openrouter_v2.gerar(ctx)
-        spec=result["spec"]
-        items=spec["elementos"]
-        if not any(e.get("tipo")=="foto" and e.get("ref")=="principal" for e in items):
-            raise ValueError("foto principal ausente")
-        if name=="duas_imagens" and not any(e.get("tipo")=="foto" and e.get("ref")=="secundaria" for e in items):
-            raise ValueError("segunda foto ausente")
-        if not any(e.get("papel")=="titulo" and e.get("texto")==title and e.get("contorno",0)==0 for e in items):
-            raise ValueError("titulo preenchido ausente")
-        png=out/(name+".png")
-        compositor_v2.render(spec,png)
-        with Image.open(png) as im:
-            if im.size!=(1080,1350): raise ValueError("dimensoes invalidas")
-            im.verify()
+        ctx["instrucoes"].extend([
+            "Retorne objeto com tipo=composicao_livre e elementos como lista de 3 a 12 objetos, nao um objeto indexado.",
+            "Cada elemento deve ter tipo, x, y, w, h; todas as medidas sao inteiros em pixels. 0<=x<=1079, 0<=y<=1349, 1<=w<=1080-x, 1<=h<=1350-y.",
+            "Texto e marca: x>=48, y>=48, x+w<=1032, y+h<=1302. Altura do texto >=1.2*tamanho. Evite sobrepor marca e texto.",
+            "Exemplo de um unico elemento valido (nao e template): "+json.dumps({"tipo":"texto","papel":"titulo","texto":title,"x":64,"y":800,"w":950,"h":130,"tamanho":100,"peso":700,"cor":"branco","contorno":0},ensure_ascii=False),
+            "Nao repita instrucoes ou metadados na resposta. Nao use markdown."
+        ])
+        attempts=[]
+        for attempt in range(2):
+            try:
+                result=openrouter_v2.gerar(ctx)
+                spec=result["spec"]
+                items=spec["elementos"]
+                if not any(e.get("tipo")=="foto" and e.get("ref")=="principal" for e in items):
+                    raise ValueError("foto principal ausente")
+                if name=="duas_imagens" and not any(e.get("tipo")=="foto" and e.get("ref")=="secundaria" for e in items):
+                    raise ValueError("segunda foto ausente")
+                if not any(e.get("papel")=="titulo" and e.get("texto")==title and e.get("contorno",0)==0 for e in items):
+                    raise ValueError("titulo preenchido ausente")
+                png=out/(name+".png")
+                compositor_v2.render(spec,png)
+                with Image.open(png) as im:
+                    if im.size!=(1080,1350): raise ValueError("dimensoes invalidas")
+                    im.verify()
+                break
+            except Exception as exc:
+                attempts.append(str(exc)[:180])
+                if attempt==1 or "HTTP 429" in str(exc) or "HTTP 401" in str(exc) or "HTTP 403" in str(exc):
+                    raise
+                ctx["instrucoes"].append("A tentativa anterior foi rejeitada: "+str(exc)[:180]+". Corrija esse erro, mantendo a liberdade da composicao e todas as regras.")
         (out/(name+".json")).write_text(json.dumps(spec,ensure_ascii=False,indent=2),encoding="utf-8")
         recentes.append([{"tipo":e.get("tipo"),"x":e["x"],"y":e["y"],"w":e["w"],"h":e["h"]} for e in items])
-        report.append({"caso":name,"status":"renderizado","revisao_visual":"pendente"})
+        report.append({"caso":name,"status":"renderizado","revisao_visual":"pendente","tentativas":attempt+1,"erros_anteriores":attempts})
     except Exception as exc:
-        report.append({"caso":name,"status":"falha","erro":str(exc)[:180]})
+        report.append({"caso":name,"status":"falha","erro":str(exc)[:180],"erros_anteriores":attempts})
     (out/"relatorio.json").write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding="utf-8")
 print(json.dumps(report,ensure_ascii=False))
 if any(x["status"]!="renderizado" for x in report): raise SystemExit(1)
