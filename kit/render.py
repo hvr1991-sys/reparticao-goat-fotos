@@ -126,8 +126,8 @@ def agenda(spec):
     # informações da transmissão 50% maiores (pedido do Gestor); com muitos jogos, tudo encolhe junto para caber
     top_area, bottom_area = 320, H - 180  # entre a data e o logo
     gap = 20
-    k = min(1.0, ((bottom_area - top_area) - (n - 1) * gap) / (n * 160)) if n else 1.0
-    card_h = int(160 * k)
+    k = min(1.0, ((bottom_area - top_area) - (n - 1) * gap) / (n * 111)) if n else 1.0
+    card_h = int(111 * k)
     # horário no tamanho de sempre; rótulo e confronto maiores, com espaço para a foto à direita
     f_hora, f_rot, f_tit = int(46 * max(k, .8)), int(24 * k), int(41 * k)
     total = n * card_h + (n - 1) * gap
@@ -138,7 +138,7 @@ def agenda(spec):
         foto = j.get("foto")
         foto_html = ""
         if foto:
-            foto_html = (f'<div style="position:absolute;right:0;top:0;bottom:0;width:44%;overflow:hidden;border-radius:0 18px 18px 0">'
+            foto_html = (f'<div style="position:absolute;right:0;top:0;bottom:0;width:42%;overflow:hidden;border-radius:0 16px 16px 0">'
                          f'<img src="{editorial(foto)}" alt="" style="width:100%;height:100%;object-fit:cover;object-position:{esc(j.get("foco","70% 25%"))}">'
                          f'<div style="position:absolute;inset:0;background:linear-gradient(90deg,{SURF2} 0%,rgba(20,20,22,.85) 18%,rgba(20,20,22,.35) 55%,rgba(20,20,22,0) 85%)"></div></div>')
         conf = str(j.get("confronto", "")).upper()
@@ -151,19 +151,19 @@ def agenda(spec):
         else:
             tit_html = f'<div style="{estilo}">{confronto(conf) if " X " in conf else esc(conf)}</div>'
         cards.append(f"""
-<div style="position:absolute;left:{(W-960)//2}px;top:{y}px;width:960px;height:{card_h}px;border-radius:18px;overflow:hidden;
+<div style="position:absolute;left:{(W-910)//2}px;top:{y}px;width:910px;height:{card_h}px;border-radius:16px;overflow:hidden;
  background:linear-gradient(180deg,{SURF2},{SURF1});box-shadow:inset 0 0 0 1px rgba(245,245,242,.06)">
- <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:{Y}"></div>
+ <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:{Y}"></div>
  {foto_html}
- <div style="position:absolute;left:30px;top:0;bottom:0;width:{int(150*k)}px;display:flex;align-items:center;font:700 {f_hora}px/1 'GOAT Sans';color:{WHITE};text-transform:uppercase;white-space:nowrap">{esc(j["horario"]).upper()}</div>
+ <div style="position:absolute;left:30px;top:0;bottom:0;width:{int(150*k)}px;display:flex;align-items:center;font:600 {f_hora}px/1 'GOAT Sans';color:{WHITE};text-transform:uppercase;white-space:nowrap">{esc(j["horario"]).upper()}</div>
  <div style="position:absolute;left:{int(30+160*k)}px;top:{int(28*k)}px;bottom:{int(28*k)}px;width:1px;background:rgba(245,245,242,.22)"></div>
- <div style="position:absolute;left:{int(30+160*k)+24}px;right:{'40%' if foto else '30px'};top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:{int(6*k)}px">
+ <div style="position:absolute;left:{int(30+160*k)+24}px;right:{'42%' if foto else '30px'};top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:{int(6*k)}px">
   <div style="font:600 {f_rot}px/1.05 'GOAT Sans';letter-spacing:.04em;color:{Y};text-transform:uppercase;white-space:nowrap;overflow:hidden">{esc(j["rotulo"])}</div>
   {tit_html}
  </div>
 </div>""")
     body = f"""{bg}{ilustrativo(spec)}
-<div style="position:absolute;top:118px;left:0;right:0;text-align:center;font:700 96px/1 'GOAT Sans';letter-spacing:.01em">AGENDA <span style="font-weight:400">DO DIA</span></div>
+<div style="position:absolute;top:118px;left:0;right:0;text-align:center;font:700 96px/1 'GOAT Sans';letter-spacing:.01em">AGENDA <span style="font-weight:300">DO DIA</span></div>
 <div style="position:absolute;top:248px;left:0;right:0;text-align:center;font:600 32px/1 'GOAT Sans';letter-spacing:.06em;color:rgba(245,245,242,.78)"><span style="color:{Y}">{esc(dia)}</span> {esc(resto)}</div>
 {''.join(cards)}
 <div style="position:absolute;bottom:72px;left:0;right:0;display:flex;justify-content:center">{mark_tag(spec, 150)}</div>"""
