@@ -1,5 +1,5 @@
 {
-  "versao": 1,
+  "versao": 2,
   "escopo": "experimental",
   "regras_gestor": {
     "marca": "logo",
@@ -26,7 +26,8 @@
     "Preservar aparência real dos atletas e registrar procedência.",
     "Evitar repetição visual desnecessária.",
     "Não inventar dados, horários ou fontes.",
-    "Quando uma regra da skill não estiver disponível, sinalizar revisão pendente."
+    "Quando uma regra da skill não estiver disponível, sinalizar revisão pendente.",
+    "Priorizar titulos preenchidos, de alto contraste. Contorno tipografico e recurso complementar ou excepcional, nao padrao de manchete. Se houver contorno como protagonista, justificar na revisao visual."
   ],
   "limites": {
     "integracao_skill_completa": false,
