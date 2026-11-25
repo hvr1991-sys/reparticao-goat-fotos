@@ -23,6 +23,31 @@ def asset(a):
         raise ValueError("foto sem procedencia correspondente no acervo")
     return path
 
+def recorte_uri(path, points):
+    """Polygon mask over original photo; no generative replacement."""
+    import base64, io
+    from PIL import Image, ImageDraw
+    if not isinstance(points,list) or not 3<=len(points)<=120:
+        raise ValueError("contorno precisa de 3 a 120 pontos")
+    im=Image.open(path).convert("RGB")
+    w,h=im.size
+    if w*h>40000000:
+        raise ValueError("foto grande demais")
+    polygon=[]
+    for point in points:
+        if not isinstance(point,list) or len(point)!=2:
+            raise ValueError("ponto invalido")
+        x,y=point
+        polygon.append((integer(x,0,w-1),integer(y,0,h-1)))
+    mask=Image.new("L",(w,h),0)
+    ImageDraw.Draw(mask).polygon(polygon,fill=255)
+    if not mask.getbbox():
+        raise ValueError("mascara vazia")
+    im.putalpha(mask)
+    buf=io.BytesIO()
+    im.save(buf,format="PNG")
+    return "data:image/png;base64,"+base64.b64encode(buf.getvalue()).decode()
+
 def build(s):
     if s.get("tipo")!="composicao_livre":
         raise ValueError("tipo invalido")
@@ -65,7 +90,8 @@ def build(s):
                 integer(bx,x,x+w-1); integer(by,y,y+h-1)
                 integer(bw,1,x+w-bx); integer(bh,1,y+h-by)
                 protected.append((bx,by,bx+bw,by+bh))
-            src=r.editorial(path)
+            mask=e.get("recorte_poligono")
+            src=recorte_uri(path,mask) if mask is not None else r.editorial(path)
             parts.append(f'<img src="{src}" style="{pos};object-fit:cover;object-position:{focus}">')
         elif t=="marca":
             parts.append(f'<div style="{pos};display:flex;align-items:center;justify-content:center">{r.mark_tag(s,w,"max-height:100%;object-fit:contain")}</div>')
