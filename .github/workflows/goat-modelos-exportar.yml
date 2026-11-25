@@ -1,0 +1,25 @@
+name: Exportar referencias GOAT
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  referencias:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Exportar somente referencias
+        uses: actions/upload-artifact@v4
+        with:
+          name: goat-modelos-referencia
+          path: |
+            modelos/**/*.png
+            modelos/**/*.jpg
+            modelos/**/*.jpeg
+            modelos/**/*.txt
+            modelos/README.md
+          if-no-files-found: error
+          retention-days: 3
