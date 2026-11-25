@@ -25,7 +25,7 @@
     "horario": "11H20",
     "confronto": "AL ETTIFAQ X AL HILAL",
     "foto": "fotos/ec381e49-a954-48b3-ae85-88935c63eae8-j83/1.png",
-    "foco": "50% 16%"
+    "foco": "50% 20%"
    },
    {
     "rotulo": "BUNDESLIGA",
@@ -46,14 +46,14 @@
     "horario": "14H30",
     "confronto": "AL AHLI X AL TAAWOUN",
     "foto": "fotos/f16acadf-8290-4373-bbfd-6440d848a0a4/1.png",
-    "foco": "50% 11%"
+    "foco": "50% 13%"
    },
    {
     "rotulo": "LIBERTADORES",
     "horario": "17H",
     "confronto": "PALMEIRAS X ESTUDIANTES",
     "foto": "fotos/eec11253-8d51-481a-b471-6090728760af-j105/2.png",
-    "foco": "50% 48%"
+    "foco": "50% 52%"
    }
   ],
   "marca": "logo",

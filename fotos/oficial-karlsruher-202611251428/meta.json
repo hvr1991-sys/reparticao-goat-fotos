@@ -1,0 +1,71 @@
+{
+  "id": "oficial-karlsruher-202611251428",
+  "fotos": [
+    {
+      "ok": true,
+      "arquivo": "1.png",
+      "largura": 1200,
+      "altura": 630,
+      "url_imagem": "https://a.storyblok.com/f/288632720777569/1200x630/d47d213140/ksc.webp/m/1200x630/",
+      "pagina": "https://www.ksc.de/aktuelles/news/ksc-tv",
+      "credito": "KARLSRUHER (site oficial · ksc.de)",
+      "rotulo": "HERTHA BERLIM X KARLSRUHER · KARLSRUHER",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "2.png",
+      "largura": 1200,
+      "altura": 630,
+      "url_imagem": "https://a.storyblok.com/f/288632720777569/1200x630/d47d213140/ksc.webp/m/1200x630/",
+      "pagina": "https://www.ksc.de/aktuelles/spieltag/profis",
+      "credito": "KARLSRUHER (site oficial · ksc.de)",
+      "rotulo": "HERTHA BERLIM X KARLSRUHER · KARLSRUHER",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "3.png",
+      "largura": 1200,
+      "altura": 630,
+      "url_imagem": "https://a.storyblok.com/f/288632720777569/1200x630/d47d213140/ksc.webp/m/1200x630/",
+      "pagina": "https://www.ksc.de/aktuelles/spieltag/akademie",
+      "credito": "KARLSRUHER (site oficial · ksc.de)",
+      "rotulo": "HERTHA BERLIM X KARLSRUHER · KARLSRUHER",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "4.png",
+      "largura": 1200,
+      "altura": 630,
+      "url_imagem": "https://a.storyblok.com/f/288632720777569/1200x630/d47d213140/ksc.webp/m/1200x630/",
+      "pagina": "https://www.ksc.de/aktuelles/spieltag/frauen",
+      "credito": "KARLSRUHER (site oficial · ksc.de)",
+      "rotulo": "HERTHA BERLIM X KARLSRUHER · KARLSRUHER",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "5.png",
+      "largura": 1200,
+      "altura": 630,
+      "url_imagem": "https://a.storyblok.com/f/288632720777569/1200x630/d47d213140/ksc.webp/m/1200x630/",
+      "pagina": "https://www.ksc.de/aktuelles/termine/kalender",
+      "credito": "KARLSRUHER (site oficial · ksc.de)",
+      "rotulo": "HERTHA BERLIM X KARLSRUHER · KARLSRUHER",
+      "baixa_resolucao": false
+    },
+    {
+      "ok": true,
+      "arquivo": "6.png",
+      "largura": 1200,
+      "altura": 630,
+      "url_imagem": "https://a.storyblok.com/f/288632720777569/1200x630/d47d213140/ksc.webp/m/1200x630/",
+      "pagina": "https://www.ksc.de/aktuelles/termine/genusserlebnis",
+      "credito": "KARLSRUHER (site oficial · ksc.de)",
+      "rotulo": "HERTHA BERLIM X KARLSRUHER · KARLSRUHER",
+      "baixa_resolucao": false
+    }
+  ]
+}
