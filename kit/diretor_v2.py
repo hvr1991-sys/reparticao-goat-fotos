@@ -24,7 +24,7 @@ def preparar(briefing, skill, ensinamentos, referencias, fotos, recentes=()):
             "tipo":"composicao_livre","marca":"logo","canvas":[1080,1350],
             "elementos":"2 a 32; x,y,w,h inteiros; camadas na ordem da lista",
             "tipos":{
-                "foto":{"ref":"chave do acervo","foco":"50% 25%","rostos_protegidos":"caixas conhecidas em coordenadas do canvas"},
+                "foto":{"ref":"chave do acervo","foco":"50% 25%","transicao":{"lado":"base|topo|esquerda|direita","extensao":"10-45 porcento da foto; usar para integrar borda ao fundo, sem cobrir rosto"},"rostos_protegidos":"caixas conhecidas em coordenadas do canvas"},
                 "texto":{"papel":"titulo|apoio|sobretitulo|dado|jogo","texto":"texto literal","tamanho":"24-180","peso":[400,500,600,700,800],"alinhamento":["esquerda","centro","direita"],"cor":["amarelo","branco","preto","cinza"],"contorno":"0-5, apenas titulo"},
                 "forma":{"cor":"paleta oficial","opacidade":"0-100","raio":"0-100"},
                 "degrade":{"direcao":["base","topo","esquerda","direita"],"intensidade":"0-100"},
