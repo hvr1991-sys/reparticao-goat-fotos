@@ -30,6 +30,9 @@ SKILL = ROOT / "kit" / "skill-original"
 PREVIOUS_TASK = "0fa0735a-9e87-47c5-ac2a-330cbb83e7ec"
 PHOTO = "fotos/399ca7c2-a821-42d7-8509-02ed455f5125-j112/1.jpg"
 HEADLINES = ["SUA PAIXÃO", "PELO JOGO"]
+ERROR_CODES = frozenset({"provider_unavailable", "incomplete_response", "unexpected_model",
+    "unexpected_cost", "empty_response", "call_budget", "retry_wait", "invalid_json", "invalid_contract"})
+FINISH_REASONS = frozenset({"stop", "length", "content_filter", "tool_calls", "error", "unknown"})
 
 
 class ReleaseFailure(RuntimeError):
@@ -50,6 +53,37 @@ def _provider_record(phase):
     return {"phase": phase, **{key: actual.get(key) for key in ("model", "cost", "calls", "vision", "structured")}}
 
 
+def _safe_error_metadata(source):
+    """Only provider enums, counts, a catalog model ID and a validator hash are public."""
+    get = source.get if isinstance(source, dict) else lambda key, default=None: getattr(source, key, default)
+    result = {}
+    code = get("code")
+    if isinstance(code, str) and code in ERROR_CODES:
+        result["code"] = code
+    finish = get("finish_reason")
+    if isinstance(finish, str) and finish in FINISH_REASONS:
+        result["finish_reason"] = finish
+    raw = get("diagnostics")
+    diagnostics = {}
+    if isinstance(raw, dict):
+        for key in ("completion_tokens", "reasoning_tokens", "response_chars", "json_line", "json_column"):
+            value = raw.get(key)
+            if type(value) is int and 0 <= value <= 1_000_000_000:
+                diagnostics[key] = value
+        value = raw.get("finish_reason")
+        if isinstance(value, str) and value in FINISH_REASONS:
+            diagnostics["finish_reason"] = value
+        value = raw.get("model")
+        if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", value):
+            diagnostics["model"] = value
+        value = raw.get("validator_sha256")
+        if isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value):
+            diagnostics["validator_sha256"] = value
+    if diagnostics:
+        result["diagnostics"] = diagnostics
+    return result
+
+
 def _public_error(error, stage=None):
     # Never emit arbitrary exception text: validation errors can include private data.
     # Renderer fixtures contain only the public controlled sample and source assets.
@@ -60,13 +94,14 @@ def _public_error(error, stage=None):
         return {"type": type(error).__name__, "reason": str(error)[:320]}
     if isinstance(error, openrouter_adapter.ProviderUnavailable):
         return {"type": type(error).__name__, "reason": "OpenRouter gratuito indisponível; nenhuma aprovação presumida",
-                "http_status": error.status, "retry_after": error.retry_after, "scope": error.scope}
+                "http_status": error.status, "retry_after": error.retry_after, "scope": error.scope,
+                **_safe_error_metadata(error)}
     if isinstance(error, magnific_adapter.MagnificUnavailable):
         code = re.search(r"HTTP (\d{3})", str(error))
         return {"type": type(error).__name__, "reason": "Consulta Magnific indisponível; nenhuma nova geração enviada",
                 "http_status": int(code[1]) if code else None}
     return {"type": type(error).__name__, "reason": "Falha técnica ou de contrato; etapa não homologada",
-            "error_sha256": digest(str(error))}
+            "error_sha256": digest(str(error)), **_safe_error_metadata(error)}
 
 
 def magnific_check(summary):
@@ -205,7 +240,8 @@ def private_context_check(summary):
         agents_count=len(result.get("agents", [])), agent_status_counts=statuses,
         proposed_actions_count=len(result.get("actions", [])), errors_count=len(errors),
         error_fingerprints=[{"agent": item.get("agent") if item.get("agent") in editorial_round.AGENTS else "unknown",
-                             "reason_sha256": digest(str(item.get("reason", "")))} for item in errors])
+                             "reason_sha256": digest(str(item.get("reason", ""))),
+                             **_safe_error_metadata(item)} for item in errors])
     if result.get("ok") is not True or len(result.get("agents", [])) != 9:
         raise ReleaseFailure("A rodada real em memória dos cargos originais apresentou pendências; ativação bloqueada")
 
@@ -221,31 +257,50 @@ def main():
         "started_at": datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(),
         "commit": os.environ.get("GITHUB_SHA"), "branch": os.environ.get("GITHUB_REF_NAME"),
         "skill_sha256": digest((SKILL / "SKILL.md").read_bytes()),
-        "provider_calls": [], "supabase_writes": 0, "new_visual_generations": 0,
+        "provider_calls": [], "supabase_writes": 0, "new_visual_generations": 0, "stages": {}, "failures": [],
         "scope": "Renderização real + provedores reais. Aprovação técnica não publica artes nem ativa produção."}
-    stage = "renderer"
-    try:
+
+    def renderer_check():
         renderer = verify_renderer(output / "renderer")
         summary["renderer"] = {"status": "passed", "previews": list(renderer["previews"]),
                                "source_files_verified": renderer["source_files_verified"]}
-        if args.live:
-            stage = "magnific"
-            magnific_check(summary)
-            stage = "designer"
-            designer_check(output, summary)
-            stage = "original_agents"
-            private_context_check(summary)
+
+    checks = [("renderer", renderer_check)]
+    if args.live:
+        checks.extend([
+            ("magnific", lambda: magnific_check(summary)),
+            ("designer", lambda: designer_check(output, summary)),
+            ("original_agents", lambda: private_context_check(summary)),
+        ])
+    else:
+        summary["provider_status"] = "not_run_offline"
+        summary["original_agents"] = {"status": "not_run_offline", "supabase_writes": 0}
+
+    # Independent read-only checks all run. A failed fixture/provider must not hide
+    # whether the original private context and agents are intact; every gate remains required.
+    for stage, check in checks:
+        try:
+            check()
+        except Exception as error:
+            public_error = _public_error(error, stage)
+            summary["stages"][stage] = {"status": "failed", "error": public_error}
+            summary["failures"].append({"stage": stage, "error": public_error})
+            summary.setdefault(stage, {})["status"] = "failed"
         else:
-            summary["provider_status"] = "not_run_offline"
-            summary["original_agents"] = {"status": "not_run_offline", "supabase_writes": 0}
-        summary["ok"] = True
-    except Exception as error:
-        summary["failed_stage"] = stage
-        summary["error"] = _public_error(error, stage)
-    finally:
-        summary["ended_at"] = datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat()
+            state = summary.setdefault(stage, {}).get("status", "passed")
+            summary["stages"][stage] = {"status": state}
+        # Keep partial evidence if the runner is interrupted during a later provider call.
         _save(output / "summary.json", summary)
+
+    summary["ok"] = not summary["failures"]
+    if summary["failures"]:
+        # Retain the first-error keys for existing consumers, alongside the full stage list.
+        summary["failed_stage"] = summary["failures"][0]["stage"]
+        summary["error"] = summary["failures"][0]["error"]
+    summary["ended_at"] = datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat()
+    _save(output / "summary.json", summary)
     print(json.dumps({"ok": summary["ok"], "failed_stage": summary.get("failed_stage"),
+                      "failed_stages": [item["stage"] for item in summary["failures"]],
                       "error": summary.get("error"), "summary": str(output / "summary.json")}, ensure_ascii=False))
     return 0 if summary["ok"] else 1
 

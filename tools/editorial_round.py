@@ -147,12 +147,98 @@ def _existing_patch(card, patch, agent):
             "expected_stage": card["stage"], "expected_updated_at": card["updated_at"], "patch": patch}
 
 
-def _ask(snapshot, agent, task, data, generator, validator, image_parts=None):
+def _schema_text(limit, required=True):
+    return {"type": "string", "minLength": 1 if required else 0, "maxLength": limit}
+
+
+def _schema_object(properties):
+    return {"type": "object", "properties": properties, "required": list(properties),
+            "additionalProperties": False}
+
+
+def _role_schema(role, ids):
+    """Structure the reply; the existing validators still enforce editorial gates."""
+    iso_day = {"type": "string", "pattern": r"^\d{4}-\d{2}-\d{2}$"}
+    editorial_format = {"type": "string", "enum": ["Arte feed", "Reels"]}
+    if role == "research":
+        fields = {
+            "source_ids": {"type": "array", "minItems": 1, "maxItems": 4,
+                           "items": {"type": "integer", "enum": sorted(ids)}},
+            "title": _schema_text(120), "league": _schema_text(100),
+            "why": _schema_text(800), "brief": _schema_text(1800),
+            "format": editorial_format, "kind": _schema_text(50),
+            "pub_date": iso_day, "due_date": iso_day,
+            "general_tournament": {"type": "boolean", "enum": [True]},
+            "relevance": {"type": "integer", "minimum": 1, "maximum": 10},
+            "urgency": _schema_text(100),
+        }
+        maximum = 2
+    else:
+        fields = {"id": {"type": "string", "enum": sorted(ids)}}
+        if role == "coordinate":
+            fields.update(ready={"type": "boolean"}, pub_date=iso_day, due_date=iso_day,
+                          note=_schema_text(600))
+            maximum = 6
+        elif role == "develop":
+            fields.update(
+                angles={"type": "array", "minItems": 3, "maxItems": 3,
+                        "items": _schema_text(200)},
+                title=_schema_text(120), why=_schema_text(800), brief=_schema_text(1800),
+                format=editorial_format, kind=_schema_text(50), note=_schema_text(600),
+                ready={"type": "boolean"})
+            maximum = 4
+        elif role == "reels":
+            # Empty script/caption remain valid with ready=false; evidence is never invented.
+            fields.update(script=_schema_text(4000, False), legenda=_schema_text(1500, False),
+                          note=_schema_text(600, False), ready={"type": "boolean"})
+            maximum = 2
+        elif role == "quality":
+            fields.update(ok={"type": "boolean"}, score={"type": "integer", "minimum": 1, "maximum": 5},
+                          review=_schema_text(600), corrections=_schema_text(800, False))
+            maximum = 2
+        else:
+            raise ValueError("Contrato editorial desconhecido")
+    return _schema_object({"items": {"type": "array", "minItems": 0, "maxItems": maximum,
+                                     "items": _schema_object(fields)}})
+
+
+def _ask(snapshot, agent, task, data, generator, validator, schema, image_parts=None):
     prompt = _context(snapshot, agent) + "\nTAREFA DESTA RODADA:\n" + task
+    prompt += ("\nSAÍDA CONCISA: responda somente o JSON do contrato, sem repetir instruções ou dados de entrada. "
+               "Use brief suficiente de até 1800 caracteres, justificativa de até 800 e notas de até 600. "
+               "Não preencha fatos ausentes para satisfazer o contrato. Use ready false com a pendência "
+               "quando permitido; se nenhum item puder ser sustentado, retorne {\"items\":[]}. "
+               "Textos vazios permitidos são adequados quando faltam evidências; nunca invente conteúdo.")
     prompt += "\nDADOS DISPONÍVEIS (não acrescentar fatos ausentes):\n" + json.dumps(data, ensure_ascii=False)
     if callable(snapshot.get("_on_model_call")):
         snapshot["_on_model_call"]()
-    return generator([{"text": prompt}, *(image_parts or [])], validator=validator, temp=.3)
+    return generator([{"text": prompt}, *(image_parts or [])], validator=validator, temp=.3, schema=schema)
+
+
+def _error_metadata(exc):
+    """Copy only provider enums, public model IDs, counts and validator hashes."""
+    codes = {"provider_unavailable", "incomplete_response", "unexpected_model", "unexpected_cost",
+             "empty_response", "call_budget", "retry_wait", "invalid_json", "invalid_contract"}
+    result = {}
+    code = getattr(exc, "code", None)
+    if isinstance(code, str) and code in codes:
+        result["code"] = code
+    diagnostics = getattr(exc, "diagnostics", None)
+    if isinstance(diagnostics, dict):
+        safe = {key: value for key, value in diagnostics.items()
+                if key in {"completion_tokens", "reasoning_tokens", "response_chars", "json_line", "json_column"}
+                and type(value) is int and 0 <= value <= 1_000_000_000}
+        finish = diagnostics.get("finish_reason")
+        if isinstance(finish, str) and finish in {"stop", "length", "content_filter", "tool_calls", "error", "unknown"}:
+            safe["finish_reason"] = finish
+        model = diagnostics.get("model")
+        if isinstance(model, str) and len(model) <= 200 and re.fullmatch(r"[A-Za-z0-9_.:/-]+:free", model) and "gemini" not in model.lower():
+            safe["model"] = model
+        fingerprint = diagnostics.get("validator_sha256")
+        if isinstance(fingerprint, str) and re.fullmatch(r"[a-f0-9]{64}", fingerprint):
+            safe["validator_sha256"] = fingerprint
+        result["diagnostics"] = safe
+    return result
 
 
 def _items_validator(ids=None, maximum=4):
@@ -211,7 +297,8 @@ Retorne {"items":[{"source_ids":[id],"title":"...","league":"...",
 "pub_date":"AAAA-MM-DD","due_date":"AAAA-MM-DD","general_tournament":true,
 "relevance":9,"urgency":"esta semana"}]}. Datas em até sete dias; preferência
 por arte. Fonte é headline, não alegue ter lido o artigo inteiro."""
-    result = _ask(snapshot, agent, task, {"news": news, "broadcasts": snapshot.get("broadcasts", [])}, generator, validate)
+    result = _ask(snapshot, agent, task, {"news": news, "broadcasts": snapshot.get("broadcasts", [])},
+                  generator, validate, _role_schema("research", known))
     actions = []
     for x in result["items"]:
         ids = sorted(x["source_ids"])
@@ -245,7 +332,9 @@ vencido, ready false e note explicando a pendência concreta. Retorne
 {"items":[{"id":"...","ready":true,"pub_date":"AAAA-MM-DD",
 "due_date":"AAAA-MM-DD","note":"decisão curta e responsável"}]}.
 Não aprovar pauta, produzir arte ou mudar pedidos do Gestor."""
-    result = _ask(snapshot, agent, task, {"cards": [_source_card(c) for c in cards], "broadcasts": snapshot.get("broadcasts", [])}, generator, validate)
+    task += "\nSe faltarem datas sustentadas pelos dados, omita o item em vez de inventar um prazo; items vazio é válido."
+    result = _ask(snapshot, agent, task, {"cards": [_source_card(c) for c in cards], "broadcasts": snapshot.get("broadcasts", [])},
+                  generator, validate, _role_schema("coordinate", byid))
     actions = []
     for x in result["items"]:
         card = byid[x["id"]]
@@ -285,7 +374,9 @@ Retorne {"items":[{"id":"...","angles":["a","b","c"],"title":"...",
 "why":"...","brief":"Entrega: ... · Post: ...\\nTexto, composição livre na skill, fontes e fotos necessárias",
 "format":"Arte feed","kind":"...","note":"...","ready":true}]}.
 Roteiros de programas são proibidos. Sempre logo GOAT. Não inventar URLs de foto."""
-    result = _ask(snapshot, agent, task, {"cards": [_source_card(c) for c in cards]}, generator, validate)
+    task += "\nResuma cada um dos três ângulos em até 200 caracteres. Se faltar evidência, ready false e descreva a lacuna sem inventar fatos."
+    result = _ask(snapshot, agent, task, {"cards": [_source_card(c) for c in cards]},
+                  generator, validate, _role_schema("develop", byid))
     return [_existing_patch(byid[x["id"]], {**{k:x[k] for k in ("title","why","brief","format","kind","note")}, "stage":"aprovar_pauta" if x["ready"] else "evolucao"}, agent) for x in result["items"]]
 
 
@@ -312,7 +403,9 @@ de vídeo são links para a equipe, sem baixar nem publicar. Se faltar evidênci
 ready false e note exata. Retorne {"items":[{"id":"...","script":"...",
 "legenda":"...","note":"...","ready":true}]}.
 """
-    result = _ask(snapshot, agent, task, {"cards": [_source_card(c) for c in cards]}, generator, validate)
+    task += "\nRoteiro conciso de até 4000 caracteres; legenda de até 1500. Se ready false, script e legenda podem ficar vazios."
+    result = _ask(snapshot, agent, task, {"cards": [_source_card(c) for c in cards]},
+                  generator, validate, _role_schema("reels", byid))
     return [_existing_patch(byid[x["id"]], {"script":x["script"],"legenda":x["legenda"],"note":x["note"],"stage":"pente" if x["ready"] else "producao"}, agent) for x in result["items"]]
 
 
@@ -373,7 +466,8 @@ Retorne {"items":[{"id":"...","ok":false,"score":1,"review":"...",
 "corrections":"alterações concretas"}]}.
 """
     reviewed_cards = [{**_source_card(c), "transmissoes": [b for b in snapshot.get("broadcasts", []) if b.get("day") == c.get("pub_date")]} for c in cards]
-    result = _ask(snapshot, agent, task, {"cards":reviewed_cards}, generator, validate, images)
+    result = _ask(snapshot, agent, task, {"cards":reviewed_cards}, generator, validate,
+                  _role_schema("quality", byid), images)
     actions = []
     for x in result["items"]:
         action = _existing_patch(byid[x["id"]], {"review":x["review"],"score":x["score"],"note":"Pronto para aprovação do Gestor." if x["ok"] else x["corrections"],"stage":"ceo" if x["ok"] else "producao"}, agent)
@@ -453,7 +547,7 @@ def executar(snapshot=None, transport: Callable | None = None, dry_run=False,
             report["errors"].extend({"agent":agent,"reason":r.get("reason",r.get("status"))} for r in failures)
         except Exception as exc:
             reason = str(exc)[:240]
-            report["errors"].append({"agent":agent,"reason":reason})
+            report["errors"].append({"agent":agent,"reason":reason, **_error_metadata(exc)})
             report["agents"].append({"id":agent,"status":"aguardando","detail":reason})
             try:
                 _status(snapshot,agent,"aguardando",reason,transport,dry_run)

@@ -1,31 +1,50 @@
-# Repartição GOAT · fotos e kit do designer
+# Repartição GOAT · execução editorial e artes
 
-Repositório usado pela equipe de arte da Repartição GOAT (público, para a rodada agendada ler o kit e as fotos sem senha).
+Executor do [painel GOAT](https://reparticao-goat.lovable.app/). Este repositório público guarda o código, a skill visual original e os recursos visuais autorizados. Instruções privadas dos agentes e aprendizados são lidos do backend autenticado em cada rodada.
 
-## Como funciona
-1. O designer acha a foto oficial no site ou perfil do clube e grava um pedido em `jobs/<id-do-card>.json`:
-   ```json
-   {"id": "<id-do-card>", "fotos": [{"url": "https://site-do-clube/...", "credito": "Foto: Nome / Clube", "rotulo": "Atleta"}]}
-   ```
-   A URL pode ser da imagem ou da página da notícia (o robô usa a imagem principal da página).
-2. O GitHub Actions (`Baixar fotos`) baixa as imagens para `fotos/<id>/` e grava `meta.json` com origem, tamanho e erros.
-3. O designer confere cada foto (sem marca d'água, resolução boa, foto do clube), monta a arte com `kit/render.py` e entrega no painel.
+## Provedores e identidade visual
 
-## Fila de pedidos (rodada agendada)
-A rodada agendada não tem acesso de escrita aqui. Ela grava pedidos na tabela `rg_jobs` do Supabase e o workflow
-**Processar pedidos da Repartição** (a cada 5 min) faz o resto:
-- `fotos`: baixa para `fotos/<card>-j<id>/` (com `meta.json`);
-- `arte`: monta com `kit/render.py` em `arts/<card>.png` e envia ao painel.
-A rodada lê as fotos e as artes por este repositório público para conferir antes de mandar ao CEO.
+- **Magnific** é o provedor de geração visual para cenários adequados ao briefing. Fotos de atletas, apresentadores, uniformes, escudos e patrocinadores continuam reais.
+- **OpenRouter gratuito** faz planejamento, texto e revisão visual. O catálogo precisa confirmar preço zero, capacidade necessária e modelo `:free`; o modelo efetivo e o custo da resposta também são conferidos. Gemini não participa do fluxo ativo.
+- `kit/skill-original/` preserva os 18 arquivos recebidos, conferidos por SHA-256. `OVERRIDES.md` registra orientações posteriores, como usar sempre o logo oficial GOAT.
+- Texto, logo e composição são montados pelo renderizador. Magnific não substitui a tipografia nem o fundo fixo dos modelos de agenda.
 
-## Regras
-- Só fotos de canais oficiais dos clubes ou enviadas pela equipe do Canal GOAT.
-- Só fotos sem marca d'água. Nunca recortar, borrar ou editar para esconder marca d'água.
-- A foto não é redesenhada: só recorte de enquadramento e o ajuste global GOAT_SPORTS_EDITORIAL.
+## Fluxo dos nove cargos
 
-## Kit
-`kit/render.py` monta as peças da skill `canal-goat-artes` (agenda, jogo único, manchete, chamada, estatísticas) com o logo oficial e a Barlow Condensed:
+Pesquisa → evolução → **aprovação humana da pauta** → produção → pente fino → **aprovação final do Gestor**.
+
+`tools/editorial_round.py` executa pesquisa, coordenação, desenvolvimento, roteiros e revisão. Os três designers usam `tools/designer_openrouter.py`. Cada cargo recebe suas instruções originais e os aprendizados ativos. Os agentes não podem marcar uma peça como aprovada ou publicá-la em redes sociais.
+
+A entrega visual exige foto com origem rastreada, conferência da foto, renderização, revisão da imagem final e da legenda com crédito. Todas as páginas precisam passar antes do envio dos mesmos bytes ao painel. Uma falha de provedor, data vencida, fonte ausente ou revisão negativa mantém uma pendência explícita.
+
+## Execução automática
+
+O workflow **Processar pedidos da Repartição** executa somente em `main`, com autenticação OIDC do GitHub. `config/runtime.json` controla a rodada dos agentes; `enabled: false` pausa essa rodada, mantendo a fila legada de pedidos.
+
+Cada execução mantém plantão de aproximadamente 50 minutos, consulta a fila a cada 20 segundos e inicia a rodada editorial em intervalos de 30 minutos. Ao terminar, solicita o próximo plantão. O cron de dez minutos serve como reserva; a disponibilidade dos runners pode atrasar o início.
+
+A configuração atual limita a produção a três cards por rodada. Magnific tem limites de geração por execução e por dia; seu diário persistido permite retomar tarefas conhecidas sem gerar outra vez. Respostas de limite do OpenRouter respeitam os tempos de espera informados pelo serviço. Não há fallback pago, recarga automática implementada ou troca automática para Gemini.
+
+O painel distingue atividade recente, espera e ausência de atualização pelos registros reais. Estar na fila não significa que uma arte já tenha sido aprovada.
+
+## Fotos e arquivos
+
+- Fotos oficiais aprovadas ficam em `fotos/`, com origem, crédito, dimensões e hash.
+- Fotos privadas da equipe ficam cifradas no repositório; a cópia decifrada é temporária e ignorada pelo Git.
+- A mesma fotografia não pode ocupar dois slots da mesma peça nem ser reutilizada indevidamente no mesmo dia.
+- Nunca remover marcas d'água nem redesenhar atletas. O preset `GOAT_SPORTS_EDITORIAL` aplica apenas ajustes globais e enquadramento.
+- Artes enviadas e seus dados de origem ficam em `arts/`. O estado temporário do renderizador fica fora do histórico do Git.
+
+## Verificação e operação
+
+**GOAT consolidated release verification** é a conferência de liberação. Ela verifica os arquivos originais, quatro composições, autenticação Magnific e planejamento/revisões reais do OpenRouter. Em `main`, lê o contexto privado e executa uma rodada dos nove cargos em memória, sem gravar no banco. O artifact público contém somente amostras controladas, contagens, hashes e diagnósticos sanitizados.
+
+Testes antigos de Gemini e rotas alternativas foram desativados e mantidos no histórico. Uma resposta simulada não comprova funcionamento dos provedores. Uma aprovação técnica de amostra não substitui a aprovação editorial humana.
+
+Para renderizar uma peça localmente, use as dependências do workflow e um navegador Chrome/Chromium disponível:
+
 ```bash
-pip install playwright pillow numpy && python3 -m playwright install chromium
 python3 kit/render.py spec.json saida.png
 ```
+
+O backend `rg-jobs`, sua versão anterior e o procedimento de reversão estão preservados no repositório privado do painel. Nenhum segredo deve ser incluído neste repositório, nos artifacts ou nos logs.
