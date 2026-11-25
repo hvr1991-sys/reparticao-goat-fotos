@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/goat-live-v2.yml'
       - 'kit/smoke_openrouter_v2.py'
+      - 'kit/openrouter_v2.py'
   workflow_dispatch:
 permissions:
   contents: read
