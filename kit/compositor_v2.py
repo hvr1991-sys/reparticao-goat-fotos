@@ -41,6 +41,8 @@ def build(s):
     if not isinstance(assets,dict) or len(assets)>8:
         raise ValueError("acervo invalido")
     parts=[]
+    protected=[]
+    foreground=[]
     for e in items:
         t=e.get("tipo")
         x=integer(e.get("x"),0,1079); y=integer(e.get("y"),0,1349)
@@ -48,11 +50,22 @@ def build(s):
         pos=f"position:absolute;left:{x}px;top:{y}px;width:{w}px;height:{h}px"
         if t in ("texto","marca") and (x<48 or y<48 or x+w>1032 or y+h>1302):
             raise ValueError("elemento textual ou marca fora da margem experimental")
+        if t in ("texto","marca"):
+            foreground.append((x,y,x+w,y+h))
         if t=="foto":
             focus=e.get("foco","50% 25%")
             if not re.fullmatch(r"(?:100|[0-9]{1,2})% (?:100|[0-9]{1,2})%",focus):
                 raise ValueError("foco invalido")
-            src=r.editorial(asset(assets[e["ref"]]))
+            path=asset(assets[e["ref"]])
+            # Face boxes supplied by a reviewer are canvas coordinates, not identity labels.
+            for box in e.get("rostos_protegidos",[]):
+                if not isinstance(box,list) or len(box)!=4:
+                    raise ValueError("caixa de rosto invalida")
+                bx,by,bw,bh=box
+                integer(bx,x,x+w-1); integer(by,y,y+h-1)
+                integer(bw,1,x+w-bx); integer(bh,1,y+h-by)
+                protected.append((bx,by,bx+bw,by+bh))
+            src=r.editorial(path)
             parts.append(f'<img src="{src}" style="{pos};object-fit:cover;object-position:{focus}">')
         elif t=="marca":
             parts.append(f'<div style="{pos};display:flex;align-items:center;justify-content:center">{r.mark_tag(s,w,"max-height:100%;object-fit:contain")}</div>')
@@ -93,6 +106,10 @@ def build(s):
             raise ValueError("elemento desconhecido")
     if sum(e.get("papel")=="titulo" for e in items)>2:
         raise ValueError("maximo de duas linhas de titulo")
+    for a in foreground:
+        for b in protected:
+            if max(a[0],b[0])<min(a[2],b[2]) and max(a[1],b[1])<min(a[3],b[3]):
+                raise ValueError("texto ou marca invade area de rosto protegida")
     errors=r.conferir(s)
     if errors:
         raise ValueError(" | ".join(errors))
