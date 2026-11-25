@@ -2,6 +2,7 @@ name: GOAT original OpenRouter integration
 on:
   push:
     branches: [ia-goat-original]
+    paths: ['tools/openrouter_adapter.py']
 permissions:
   contents: read
 jobs:
