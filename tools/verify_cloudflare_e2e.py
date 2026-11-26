@@ -20,6 +20,7 @@ def stage(name,ok):
     print("STAGE",name,ok,flush=True)
 def generate(parts,validator=None,temp=.3,**kwargs):
     original=list(parts)
+    planning=getattr(validator,"__name__","")=="_validate_plan"
     for attempt in range(2):
         if len(REPORT["calls"])>=8 or sum(c.get("neurons",0) for c in REPORT["calls"])>=500:
             raise RuntimeError("Test call/consumption limit")
@@ -30,14 +31,18 @@ def generate(parts,validator=None,temp=.3,**kwargs):
                 i=p["inline_data"]
                 content.append({"type":"image_url","image_url":{"url":"data:"+i["mime_type"]+";base64,"+i["data"]}})
             else: raise ValueError("Unsupported input")
-        vision=any(p["type"]=="image_url" for p in content)
-        model="@cf/meta/llama-4-scout-17b-16e-instruct" if vision else "@cf/meta/llama-3.2-3b-instruct"
+        # One verified candidate: use its metadata for planning; review the actual photo separately.
+        if planning:
+            content="\n\n".join(p["text"] for p in content if p["type"]=="text")
+            content+="\nHa exatamente uma foto oficial P001. Retorne JSON com brief, legenda, spec (tipo manchete, foto P001, titulo lista de objetos texto/amarelo, marca logo), foto_obrigatoria true, pendencia vazia, recurso_visual null."
+        vision=not planning and any(p["type"]=="image_url" for p in content)
+        model="@cf/meta/llama-4-scout-17b-16e-instruct" if vision else "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
         account=os.environ["CLOUDFLARE_ACCOUNT_ID"]
         assert re.fullmatch(r"[a-fA-F0-9]{32}",account)
         endpoint="https://api.cloudflare.com/client/v4/accounts/"+account+"/ai/v1/chat/completions"
-        payload={"model":model,"messages":[{"role":"user","content":content}],"temperature":temp,"max_tokens":1800,"response_format":{"type":"json_object"}}
+        payload={"model":model,"messages":[{"role":"user","content":content}],"temperature":temp,"max_tokens":2500 if planning else 600,"response_format":{"type":"json_object"}}
         req=urllib.request.Request(endpoint,data=json.dumps(payload).encode(),headers={"Authorization":"Bearer "+os.environ["CLOUDFLARE_API_TOKEN"],"Content-Type":"application/json"})
-        record={"model":model,"vision":vision,"images":sum(p["type"]=="image_url" for p in content)}
+        record={"model":model,"vision":vision,"images":0 if planning else sum(p["type"]=="image_url" for p in content),"phase":getattr(validator,"__name__","")}
         REPORT["calls"].append(record)
         try:
             with urllib.request.urlopen(req,timeout=90) as response:
@@ -60,11 +65,13 @@ def generate(parts,validator=None,temp=.3,**kwargs):
             record["valid"]=True
             save()
             return result
-        except (ValueError,TypeError,KeyError):
+        except (ValueError,TypeError,KeyError) as e:
             record["valid"]=False
+            record["validation_error"]=str(e)[:180] if not isinstance(e,json.JSONDecodeError) else "Invalid JSON syntax"
+            record["response_chars"]=len(answer) if isinstance(answer,str) else 0
             save()
             if attempt: raise
-            parts=original+[{"text":"Corrija o contrato. Devolva somente um objeto JSON completo, sem markdown. Respeite literalmente os dados fornecidos."}]
+            parts=original+[{"text":"Corrija o contrato: "+record["validation_error"]+". Devolva somente um objeto JSON completo, sem markdown. Respeite literalmente os dados fornecidos. Resposta anterior: "+str(answer)[:3500]}]
     raise RuntimeError("Invalid JSON")
 
 def main():
