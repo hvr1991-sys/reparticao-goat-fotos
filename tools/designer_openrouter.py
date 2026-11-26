@@ -139,7 +139,11 @@ def planejar(card, docs, fix=None):
                 "spec": spec, "foto_obrigatoria": True, "pendencia": ", ".join(missing),
                 "_photos_reviewed": True}
     fields = ("title", "league", "kind", "format", "why", "brief", "note", "ceo_comment", "sources", "pub_date", "due_date", "transmissoes")
-    catalog = card.get("_photo_candidates") or []
+    kind = "jogo_unico" if "jogo" in str(card.get("kind")) else str(card.get("kind"))
+    reference = _reference(kind)
+    # Ranked candidates are already filtered for provenance and duplicates.
+    # Reserve one image slot for the original skill reference when present.
+    catalog = (card.get("_photo_candidates") or [])[:3 - sum("inline_data" in p for p in reference)]
     brief = contexto(docs, card.get("designer", "goat-designer"), lessons) + "\n" + SPEC_GUIDE
     brief += "\nCARD (fontes e fatos fornecidos):\n" + json.dumps({k: card.get(k) for k in fields}, ensure_ascii=False)
     brief += "\nCATÁLOGO REAL (use ID no campo foto):\n" + json.dumps([
@@ -149,10 +153,9 @@ def planejar(card, docs, fix=None):
     if fix:
         brief += "\nCorreção exigida pela verificação anterior: " + str(fix)
     parts = [{"text": brief}]
-    kind = "jogo_unico" if "jogo" in str(card.get("kind")) else str(card.get("kind"))
-    parts += _reference(kind)
-    # Thumbnails give the planner actual images instead of filename guesses.
-    for f in catalog[:6]:
+    parts += reference
+    # Send only candidates whose images are actually visible to the planner.
+    for f in catalog:
         parts += [{"text": "Foto " + f["id"]}, imagem(ROOT / f["arquivo"], max_side=640)]
     plan = gerar_json(parts, validator=_validate_plan, temp=0.25)
     # Model output is content, never proof that an internal review already ran.

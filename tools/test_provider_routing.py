@@ -30,9 +30,13 @@ class Routing(unittest.TestCase):
             router.gerar_json([img])
             self.assertEqual(request.call_args.args[0],groq.MODEL_VISION)
         with patch.object(groq,"request") as request, patch.object(router,"_gerar_openrouter",return_value='{"ok":false}') as backup:
-            router.gerar_json([img]*4)
+            with self.assertRaisesRegex(ValueError,"três imagens"):
+                router.gerar_json([img]*4)
             request.assert_not_called()
-            self.assertEqual(len(backup.call_args.args[0]),4)
+            backup.assert_not_called()
+        with patch.object(groq,"request",return_value='{"ok":true}') as request:
+            router.gerar_json([img]*3)
+            self.assertEqual(len(request.call_args.args[1]),3)
     def test_per_model_cooldown(self):
         groq.block(groq.MODELS_TEXT[0],60)
         self.assertEqual(groq.candidates(),[groq.MODELS_TEXT[1]])

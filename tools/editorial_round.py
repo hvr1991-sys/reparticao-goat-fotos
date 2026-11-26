@@ -470,14 +470,12 @@ def _quality(snapshot, agent, generator, image_loader):
     if not cards:
         return []
     byid = {c["id"]:c for c in cards}
-    images, visual_ids = [], set()
+    visual_ids = set()
     for card in cards:
         if "arte" in card.get("format", "").lower():
             paths = card.get("art_paths") or []
             if not paths or len(paths) > 6:
                 raise ValueError("Arte ainda não disponível para conferência visual")
-            images.append({"text":"IMAGENS REAIS DO CARD " + card["id"]})
-            images.extend(image_loader(p) for p in paths)
             visual_ids.add(card["id"])
     def validate(data):
         _items_validator(set(byid), 2)(data)
@@ -505,11 +503,41 @@ exato; ok true apenas significa pronto para aprovação final do Gestor.
 Retorne {"items":[{"id":"...","ok":false,"score":1,"review":"...",
 "corrections":"alterações concretas"}]}.
 """
-    reviewed_cards = [{**_source_card(c), "transmissoes": [b for b in snapshot.get("broadcasts", []) if b.get("day") == c.get("pub_date")]} for c in cards]
-    result = _ask(snapshot, agent, task, {"cards":reviewed_cards}, generator, validate,
-                  _role_schema("quality", byid), images)
     actions = []
-    for x in result["items"]:
+    decisions = []
+    for card in cards:
+        cid = card["id"]
+        reviewed = {**_source_card(card), "transmissoes": [b for b in snapshot.get("broadcasts", []) if b.get("day") == card.get("pub_date")]}
+        paths = card.get("art_paths") or [] if cid in visual_ids else []
+        batches = [paths[i:i+3] for i in range(0, len(paths), 3)] or [[]]
+        verdicts = []
+        def validate_batch(data):
+            validate(data)
+            if len(data["items"]) != 1 or data["items"][0]["id"] != cid:
+                raise ValueError("O lote exige um parecer explícito para o card indicado")
+            return data
+        for number, batch in enumerate(batches, 1):
+            images = []
+            if batch:
+                first = (number - 1) * 3 + 1
+                images = [{"text": f"IMAGENS REAIS DO CARD {cid} · páginas {first}–{first+len(batch)-1} de {len(paths)}"}]
+                images.extend(image_loader(p) for p in batch)
+                if any("inline_data" not in p for p in images[1:]):
+                    raise ValueError("Página não carregada para revisão visual")
+            batch_task = task + ("\nRevise somente as páginas deste lote. Não declare ter visto páginas não anexadas. "
+                                "Cada lote deve receber parecer explícito; a decisão integral será consolidada pelo sistema.")
+            result = _ask(snapshot, agent, batch_task,
+                          {"cards": [reviewed], "lote": number, "total_lotes": len(batches),
+                           "pareceres_anteriores": verdicts}, generator, validate_batch,
+                          _role_schema("quality", {cid: card}), images)
+            verdicts.append(result["items"][0])
+        # Fail closed: every page must have an explicit positive verdict.
+        ok = all(v["ok"] is True for v in verdicts)
+        score = min(v["score"] for v in verdicts)
+        review = " | ".join(f"Lote {i+1}: {v['review']}" for i,v in enumerate(verdicts))[:600]
+        corrections = " | ".join(f"Lote {i+1}: {v['corrections']}" for i,v in enumerate(verdicts) if not v["ok"])[:800]
+        decisions.append({"id":cid,"ok":ok,"score":score,"review":review,"corrections":corrections})
+    for x in decisions:
         action = _existing_patch(byid[x["id"]], {"review":x["review"],"score":x["score"],"note":"Pronto para aprovação do Gestor." if x["ok"] else x["corrections"],"stage":"ceo" if x["ok"] else "producao"}, agent)
         action.update({"review_ok":x["ok"],"visual_reviewed":x["id"] in visual_ids})
         actions.append(action)

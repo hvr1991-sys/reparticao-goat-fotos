@@ -354,21 +354,24 @@ def require_available():
 
 def gerar(partes, busca=False, temp=0.6, *, structured=False, schema=None):
     global LAST_RESPONSE
-    vision = any("inline_data" in p for p in partes)
+    partes = list(partes)
+    image_count = sum("inline_data" in p for p in partes)
+    if image_count > 3:
+        raise ValueError("Máximo de três imagens por chamada; divida a tarefa em lotes completos")
+    vision = image_count > 0
     errors = []
     request_parts = list(partes)
     if busca:
         request_parts.append({"text":"Use somente as fontes fornecidas e verificadas. Não invente URLs ou fatos."})
-    if sum("inline_data" in p for p in partes) <= 3:
-        for model in groq_adapter.candidates(vision):
-            try:
-                answer = groq_adapter.request(model,request_parts,temp=temp,schema=schema,
-                    structured=structured,error_type=ProviderUnavailable)
-                LAST_RESPONSE = {"model":model,"provider":"groq","vision":vision,"structured":structured}
-                return answer
-            except ProviderUnavailable as error:
-                errors.append(error)
-                print(str(error),flush=True)
+    for model in groq_adapter.candidates(vision):
+        try:
+            answer = groq_adapter.request(model,request_parts,temp=temp,schema=schema,
+                structured=structured,error_type=ProviderUnavailable)
+            LAST_RESPONSE = {"model":model,"provider":"groq","vision":vision,"structured":structured}
+            return answer
+        except ProviderUnavailable as error:
+            errors.append(error)
+            print(str(error),flush=True)
     try:
         return _gerar_openrouter(partes,busca=busca,temp=temp,structured=structured,schema=schema)
     except ProviderUnavailable as error:
