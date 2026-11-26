@@ -97,7 +97,7 @@ def _remember_block(error):
     _save_state()
 
 
-def provider_status(*, refresh=False, force=False):
+def _openrouter_status(*, refresh=False, force=False):
     """Read free quota without inference and retain waits across worker restarts."""
     global _quota, _quota_checked_at
     _load_state()
@@ -134,8 +134,8 @@ def provider_status(*, refresh=False, force=False):
     return result
 
 
-def require_available():
-    state = provider_status()
+def _require_openrouter():
+    state = _openrouter_status()
     if state["status"] == "waiting_provider":
         error = ProviderUnavailable("OpenRouter aguardando liberação do limite", state.get("http_status"),
                                     state["retry_after"], state["limit_scope"], code="retry_wait")
@@ -238,10 +238,10 @@ def models(vision=False, structured=False, schema=False):
     return ranked[:3]
 
 
-def gerar(partes, busca=False, temp=0.6, *, structured=False, schema=None):
+def _gerar_openrouter(partes, busca=False, temp=0.6, *, structured=False, schema=None):
     global _calls, _last_call, _blocked_until, _blocked_scope, _blocked_status, LAST_RESPONSE
     LAST_RESPONSE = {}
-    require_available()
+    _require_openrouter()
     content = []
     for part in partes:
         if "text" in part:
@@ -290,7 +290,7 @@ def gerar(partes, busca=False, temp=0.6, *, structured=False, schema=None):
         if e.status == 429:
             # A read-only quota check distinguishes daily exhaustion from a
             # provider pool limit. It never retries the failed inference.
-            state = provider_status(refresh=True, force=True)
+            state = _openrouter_status(refresh=True, force=True)
             e.retry_after = state.get("retry_after", e.retry_after)
             e.retry_at = state.get("retry_at", getattr(e, "retry_at", None))
             e.scope = state.get("limit_scope", e.scope)
@@ -324,6 +324,58 @@ def gerar(partes, busca=False, temp=0.6, *, structured=False, schema=None):
     print("OpenRouter:", actual, "· visão" if vision else "· editorial", flush=True)
     return answer
 
+
+# Router: existing Groq Free organization first; OpenRouter free as independent backup.
+try:
+    from . import groq_adapter
+except ImportError:
+    import groq_adapter
+
+def provider_status(*, refresh=False, force=False):
+    if groq_adapter.available():
+        return {"status":"quota_available","provider":"groq","free_only":True,
+                "inference_checked":False,"openrouter":_openrouter_status(refresh=False),
+                "groq_text":bool(groq_adapter.candidates()),"groq_vision":bool(groq_adapter.candidates(True))}
+    state = _openrouter_status(refresh=refresh, force=force)
+    if groq_adapter.configured() and state["status"].startswith("waiting_"):
+        retry = min(state.get("retry_after",300),groq_adapter.next_retry())
+        state.update(provider="groq/openrouter",retry_after=retry,retry_at=_iso(time.time()+retry),limit_scope="unknown")
+    return state
+
+def require_available():
+    if groq_adapter.available():
+        return
+    state = provider_status()
+    if state["status"].startswith("waiting_"):
+        error = ProviderUnavailable("Provedores gratuitos aguardando liberação",state.get("http_status"),
+                                    state.get("retry_after",300),state.get("limit_scope","unknown"),code="retry_wait")
+        error.retry_at = state.get("retry_at")
+        raise error
+
+def gerar(partes, busca=False, temp=0.6, *, structured=False, schema=None):
+    global LAST_RESPONSE
+    vision = any("inline_data" in p for p in partes)
+    errors = []
+    request_parts = list(partes)
+    if busca:
+        request_parts.append({"text":"Use somente as fontes fornecidas e verificadas. Não invente URLs ou fatos."})
+    if sum("inline_data" in p for p in partes) <= 3:
+        for model in groq_adapter.candidates(vision):
+            try:
+                answer = groq_adapter.request(model,request_parts,temp=temp,schema=schema,
+                    structured=structured,error_type=ProviderUnavailable)
+                LAST_RESPONSE = {"model":model,"provider":"groq","vision":vision,"structured":structured}
+                return answer
+            except ProviderUnavailable as error:
+                errors.append(error)
+                print(str(error),flush=True)
+    try:
+        return _gerar_openrouter(partes,busca=busca,temp=temp,structured=structured,schema=schema)
+    except ProviderUnavailable as error:
+        # Preserve the most actionable failure, not an unrelated daily wait.
+        if errors and error.code == "retry_wait":
+            raise errors[-1] from None
+        raise
 
 def json_de(text):
     raw = text.strip()

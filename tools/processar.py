@@ -351,8 +351,8 @@ def runtime_config():
 
 def designers_goat(max_cards=3):
     """Three original designers, real skill, reviewed photos, Magnific visual resources."""
-    if not os.environ.get("OPENROUTER_API_KEY"):
-        return {"results": [], "error": "OpenRouter não configurado"}
+    if not (os.environ.get("OPENROUTER_API_KEY") or os.environ.get("GROQ_API_KEY")):
+        return {"results": [], "error": "Provedor editorial não configurado"}
     sys.path.insert(0, str(ROOT / "tools"))
     import designer_openrouter
     lote = api("producao", n=max_cards)
@@ -422,7 +422,8 @@ def aguardar_provedor(state):
     else:
         label = "cota gratuita diária" if state.get("limit_scope") == "openrouter_free_tier_per_day" else "limite temporário"
         instant = datetime.fromisoformat(state["retry_at"].replace("Z", "+00:00")).astimezone(ZoneInfo("America/Sao_Paulo"))
-        message = f"OpenRouter: {label}; retomada após {instant:%d/%m %H:%M} (Brasília)"
+        provider = "Groq/OpenRouter" if state.get("provider") == "groq/openrouter" else "OpenRouter"
+        message = f"{provider}: {label}; retomada após {instant:%d/%m %H:%M} (Brasília)"
     actions = [{"agent": agent, "kind": "status", "patch": {"status": "aguardando", "task": message[:120]}}
                for agent in editorial_round.AGENTS]
     result = api("agentes-resultados", {"actions": actions})

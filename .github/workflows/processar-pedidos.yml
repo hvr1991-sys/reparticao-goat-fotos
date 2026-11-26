@@ -43,11 +43,20 @@ jobs:
           path: .goat-state/openrouter.json
           key: openrouter-main-${{ github.run_id }}
           restore-keys: openrouter-main-
+      - uses: actions/cache/restore@v4
+        with:
+          path: .goat-state/groq.json
+          key: groq-main-${{ github.run_id }}
+          restore-keys: groq-main-
       # o runner já tem o Google Chrome; o kit e o robô usam ele (sem baixar outro navegador)
       - run: pip install pillow==11.1.0 numpy==2.2.3 playwright==1.49.1 "opencv-python-headless==4.10.0.84"
+      - name: Testar roteamento sem chamadas externas
+        run: python -m unittest tools.test_provider_routing
       - name: Consultar cota gratuita sem gerar conteúdo
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GOAT_GROQ_FREE_ONLY: "1"
         run: python -m tools.openrouter_adapter --status .goat-state/provider-status.json
       - uses: actions/upload-artifact@v4
         with:
@@ -59,6 +68,8 @@ jobs:
         env:
           MAGNIFIC_API_KEY: ${{ secrets.MAGNIFIC_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GOAT_GROQ_FREE_ONLY: "1"
           GOAT_MAX_LLM_CALLS: "40"
           GOAT_MAX_VISUAL_PER_RUN: "2"
           GOAT_MAX_VISUAL_PER_DAY: "8"
@@ -76,6 +87,11 @@ jobs:
         with:
           path: .goat-state/openrouter.json
           key: openrouter-main-${{ github.run_id }}
+      - uses: actions/cache/save@v4
+        if: always() && hashFiles('.goat-state/groq.json') != ''
+        with:
+          path: .goat-state/groq.json
+          key: groq-main-${{ github.run_id }}
       # emenda o próximo plantão (o agendamento do GitHub às vezes atrasa ou não dispara)
       - name: Próximo plantão
         if: always()
