@@ -34,7 +34,7 @@ def generate(parts,validator=None,temp=.3,**kwargs):
         # One verified candidate: use its metadata for planning; review the actual photo separately.
         if planning:
             content="\n\n".join(p["text"] for p in content if p["type"]=="text")
-            content+="\nHa exatamente uma foto oficial P001. Retorne JSON com brief, legenda, spec (tipo manchete, foto P001, titulo lista de objetos texto/amarelo, marca logo), foto_obrigatoria true, pendencia vazia, recurso_visual null."
+            content+="\nHa exatamente uma foto oficial P001. Retorne JSON com brief, legenda, spec (tipo manchete, foto P001, titulo lista de objetos texto/amarelo, marca logo), foto_obrigatoria true, pendencia vazia, recurso_visual null. Titulo: uma ou duas linhas, cada uma com no maximo 22 caracteres contando espacos. Conte antes de responder."
         vision=not planning and any(p["type"]=="image_url" for p in content)
         model="@cf/meta/llama-4-scout-17b-16e-instruct" if vision else "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
         account=os.environ["CLOUDFLARE_ACCOUNT_ID"]
@@ -62,6 +62,13 @@ def generate(parts,validator=None,temp=.3,**kwargs):
             if record["finish"]!="stop": raise ValueError("Incomplete")
             result=json_de(answer)
             if validator and validator(result) is False: raise ValueError("Contract")
+            if planning:
+                spec=result["spec"]
+                if spec.get("tipo")!="manchete" or spec.get("foto")!="P001":
+                    raise ValueError("Use tipo manchete e foto P001")
+                lines=spec.get("titulo")
+                if not isinstance(lines,list) or not 1<=len(lines)<=2 or any(not isinstance(x,dict) or not isinstance(x.get("texto"),str) or not 1<=len(x["texto"].strip())<=22 or type(x.get("amarelo",False)) is not bool for x in lines):
+                    raise ValueError("Titulo exige 1 ou 2 linhas de ate 22 caracteres, contando espacos, com texto e amarelo booleano")
             record["valid"]=True
             save()
             return result
@@ -108,7 +115,13 @@ def main():
         stage("photo_review",ok)
         if not ok: raise RuntimeError("Photo review rejected")
         png=OUT/("candidate-"+str(attempt+1)+".png")
-        render(processar.resolver(spec),png)
+        try:
+            render(processar.resolver(spec),png)
+        except SystemExit as e:
+            fix=str(e)[:500]
+            REPORT["render_rejection"]=fix
+            stage("goat_render",False)
+            continue
         with Image.open(png) as im: assert im.size==(1080,1350); im.verify()
         stage("goat_render",True)
         ok,reason=designer.revisar_arte(png,card,spec,docs)
@@ -124,9 +137,9 @@ def main():
     return 0 if REPORT["ok"] else 1
 if __name__=="__main__":
     try: status=main()
-    except Exception as e:
+    except (Exception,SystemExit) as e:
         REPORT["error_type"]=type(e).__name__
-        REPORT["error"]=str(e)[:300] if isinstance(e,RuntimeError) else "Technical or contract failure"
+        REPORT["error"]=str(e)[:300] if isinstance(e,(RuntimeError,SystemExit)) else "Technical or contract failure"
         status=1
     finally:
         save()
