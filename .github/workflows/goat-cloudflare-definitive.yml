@@ -1,0 +1,88 @@
+name: GOAT Cloudflare definitive verification
+on:
+  push:
+    branches: [cloudflare-editorial-verification-20261126]
+    paths: ['.github/workflows/goat-cloudflare-definitive.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cloudflare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify credentials, catalog, editorial JSON and vision
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          python3 -u - <<'PY'
+          import os, sys, json, re, time, urllib.request as u, urllib.error as e, base64, struct, zlib
+          token=os.getenv("CLOUDFLARE_API_TOKEN","")
+          account=os.getenv("CLOUDFLARE_ACCOUNT_ID","")
+          print("SECRET_TOKEN_PRESENT",bool(token),"ACCOUNT_ID_FORMAT",bool(re.fullmatch(r"[a-fA-F0-9]{32}",account)))
+          if not token or not re.fullmatch(r"[a-fA-F0-9]{32}",account): sys.exit(2)
+          base="https://api.cloudflare.com/client/v4"
+          ai=base+"/accounts/"+account+"/ai"
+          def req(label,url,body=None):
+              start=time.monotonic()
+              try:
+                  request=u.Request(url,data=json.dumps(body).encode() if body is not None else None,headers={"Authorization":"Bearer "+token,"Content-Type":"application/json"})
+                  with u.urlopen(request,timeout=35) as response:
+                      data=json.load(response)
+                      print(label,"HTTP",response.status,"elapsed",round(time.monotonic()-start,2),"success",data.get("success"),flush=True)
+                      return response.status,data
+              except e.HTTPError as exc:
+                  try:
+                      d=json.loads(exc.read())
+                      codes=[x.get("code") for x in d.get("errors",[]) if isinstance(x,dict)]
+                  except Exception: codes=[]
+                  print(label,"HTTP",exc.code,"error_codes",codes,flush=True)
+                  return exc.code,{}
+              except Exception as exc:
+                  print(label,"ERROR",type(exc).__name__,flush=True)
+                  return 0,{}
+          _,verify=req("TOKEN_VERIFY",base+"/user/tokens/verify")
+          print("TOKEN_STATUS",(verify.get("result") or {}).get("status"))
+          code,catalog=req("CATALOG",ai+"/models/search?per_page=50")
+          if code in (401,403,429):
+              print("CATALOG_BLOCKED; checking inference independently")
+          def parse(d):
+              result=d.get("result") or {}
+              choices=d.get("choices") or (result.get("choices",[]) if isinstance(result,dict) else [])
+              if choices: value=choices[0].get("message",{}).get("content")
+              else: value=result.get("response") if isinstance(result,dict) else None
+              if isinstance(value,dict): return value
+              try: return json.loads(value)
+              except Exception: return None
+          def chat(label,model,messages,max_tokens=160):
+              status,d=req(label,ai+"/v1/chat/completions",{"model":model,"messages":messages,"max_tokens":max_tokens,"temperature":0.1,"response_format":{"type":"json_object"}})
+              val=parse(d)
+              if status==400:
+                  status,d=req(label+"_PLAIN",ai+"/v1/chat/completions",{"model":model,"messages":messages,"max_tokens":max_tokens,"temperature":0.1})
+                  val=parse(d)
+              usage=d.get("usage") or (d.get("result") or {}).get("usage",{})
+              print(label,"JSON_OBJECT",isinstance(val,dict),"USAGE",json.dumps({k:v for k,v in usage.items() if isinstance(v,(int,float))}) if isinstance(usage,dict) else "unknown",flush=True)
+              return status,val
+          prompt=[{"role":"system","content":"Voce e editor esportivo. Responda somente um objeto JSON, sem markdown. Nao invente informacoes."},{"role":"user","content":"Fatos ficticios de teste: Azul venceu Verde por 2 a 1. Gere JSON com status='ok', placar='2-1', vencedor='Azul', titulo em portugues fiel ao fato, sem inventar gols ou jogadores."}]
+          text_ok=False
+          for model in ["@cf/meta/llama-3.2-3b-instruct","@cf/meta/llama-3.3-70b-instruct-fp8-fast"]:
+              status,val=chat("EDITORIAL_"+model,model,prompt)
+              text_ok=isinstance(val,dict) and val.get("status")=="ok" and val.get("placar")=="2-1" and val.get("vencedor")=="Azul" and isinstance(val.get("titulo"),str)
+              print("EDITORIAL_PASS",text_ok,flush=True)
+              if text_ok or status in (401,403,429): break
+          # Generate a synthetic PNG with no external assets.
+          def chunk(tag,data): return struct.pack(">I",len(data))+tag+data+struct.pack(">I",zlib.crc32(tag+data)&0xffffffff)
+          w=h=128
+          pixels=b"".join(b"\0"+bytes([255,0,0])*w for _ in range(h))
+          png=b"\x89PNG\r\n\x1a\n"+chunk(b"IHDR",struct.pack(">IIBBBBB",w,h,8,2,0,0,0))+chunk(b"IDAT",zlib.compress(pixels))+chunk(b"IEND",b"")
+          vision_ok=False
+          if status not in (401,403,429):
+              msgs=[{"role":"user","content":[{"type":"text","text":"Identifique a cor dominante. Responda somente JSON com chave cor em portugues, minuscula."},{"type":"image_url","image_url":{"url":"data:image/png;base64,"+base64.b64encode(png).decode()}}]}]
+              status,val=chat("VISION","@cf/meta/llama-4-scout-17b-16e-instruct",msgs,80)
+              vision_ok=isinstance(val,dict) and str(val.get("cor","")).lower() in ("vermelho","vermelha")
+              print("VISION_PASS",vision_ok,flush=True)
+          else: print("VISION_SKIPPED_AUTH_OR_QUOTA",flush=True)
+          print("FINAL_EDITORIAL",text_ok,"FINAL_VISION",vision_ok,flush=True)
+          sys.exit(0 if text_ok and vision_ok else 1)
+          PY
