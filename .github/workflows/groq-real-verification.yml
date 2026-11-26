@@ -1,0 +1,72 @@
+name: GOAT real Groq verification
+on:
+  push:
+    branches: [groq-real-verification]
+    paths: ['.github/workflows/groq-real-verification.yml']
+permissions:
+  contents: read
+jobs:
+  real:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GOAT_GROQ_FREE_ONLY: "1"
+      GOAT_GROQ_MAX_CALLS: "2"
+      GOAT_GROQ_OUTPUT_TOKENS: "256"
+      GOAT_GROQ_STATE: /tmp/goat-groq-test.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pillow==11.1.0
+      - name: Real Groq text and three distinct images
+        run: |
+          python - <<'PY'
+          import io, json, base64, os
+          from PIL import Image, ImageDraw
+          from tools import groq_adapter as g
+          from tools import openrouter_adapter as r
+          assert g.configured(), "Existing GROQ_API_KEY unavailable"
+          def invoke(model, parts):
+              return json.loads(g.request(model, parts, temp=0.1, schema=None, structured=True, error_type=r.ProviderUnavailable))
+          outcomes = {}
+          try:
+              text = invoke(g.MODELS_TEXT[0], [{"text":"Classifique o seguinte fato ilustrativo: jogo de futebol confirmado para sábado. Retorne exclusivamente JSON com campo categoria contendo futebol e campo confirmado contendo true."}])
+              assert text.get("categoria") == "futebol" and text.get("confirmado") is True, "Text contract failed"
+              outcomes["text"] = "PASS"
+          except Exception as e:
+              outcomes["text"] = "FAIL"
+              print("TEXT:", type(e).__name__, getattr(e,"status",None), getattr(e,"code",None))
+          parts = [{"text":"Observe as três imagens na ordem em que aparecem. Retorne somente JSON com chave formas, um array de três strings em português, descrevendo a forma geométrica central de cada imagem. Use palavras simples."}]
+          for shape in ("circle","triangle","square"):
+              img=Image.new("RGB",(384,384),"white")
+              draw=ImageDraw.Draw(img)
+              if shape == "circle": draw.ellipse((80,80,304,304),fill="red")
+              elif shape == "triangle": draw.polygon([(192,50),(55,320),(329,320)],fill="blue")
+              else: draw.rectangle((80,80,304,304),fill="green")
+              buf=io.BytesIO(); img.save(buf,format="PNG")
+              parts.append({"inline_data":{"mime_type":"image/png","data":base64.b64encode(buf.getvalue()).decode()}})
+          try:
+              result = invoke(g.MODEL_VISION,parts)
+              observed = result.get("formas")
+              assert isinstance(observed,list) and len(observed)==3, "Missing image judgments"
+              import unicodedata
+              normalized = [unicodedata.normalize("NFKD",str(x)).encode("ascii","ignore").decode().lower() for x in observed]
+              assert all(word in actual for word,actual in zip(("circulo","triangulo","quadrado"),normalized)), "Incorrect shape order"
+              outcomes["three_images"]="PASS"
+              print("VISION: three distinct shapes identified in correct order")
+          except Exception as e:
+              outcomes["three_images"]="FAIL"
+              print("VISION:", type(e).__name__, getattr(e,"status",None), getattr(e,"code",None))
+          try:
+              r.gerar(parts+[parts[-1]],structured=True)
+              raise AssertionError("4 images unexpectedly accepted")
+          except ValueError:
+              outcomes["four_image_guard"]="PASS"
+          print("RESULT:",json.dumps(outcomes))
+          assert all(x=="PASS" for x in outcomes.values()), "Real verification failed"
+          PY
