@@ -1,0 +1,31 @@
+{
+  "spec": {
+    "tipo": "manchete",
+    "foto": "fotos/399ca7c2-a821-42d7-8509-02ed455f5125-j112/1.jpg",
+    "foco": "40% 22%",
+    "titulo": [
+      {
+        "texto": "UM CAMPEÃO",
+        "amarelo": false
+      },
+      {
+        "texto": "VAI CAIR",
+        "amarelo": true
+      }
+    ],
+    "apoio": "Inter, Corinthians, Grêmio ou Botafogo: ao menos um cai",
+    "alinhamento": "right",
+    "marca": "logo"
+  },
+  "pub_date": "2026-11-26",
+  "photo_sources": [
+    {
+      "label": "SC Internacional",
+      "url": "https://internacional.com.br/noticias/masculino/colorado-trabalha-forte-para-reta-final-do-brasileirao",
+      "sha256": "ed0722e7c58e505935da7fd0ed5606bc834950a31aa3b4e9b5e8e25877222c58",
+      "arquivo": "fotos/399ca7c2-a821-42d7-8509-02ed455f5125-j112/1.jpg"
+    }
+  ],
+  "review_ok": true,
+  "skill_sha256": "d43b7f5b2dbe3ac8433d0848932c661856a73f6dcfbbd1a90cd259e7fd6caf11"
+}
