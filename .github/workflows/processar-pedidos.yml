@@ -1,18 +1,57 @@
 name: Processar pedidos da Repartição
+
+# A rodada agendada grava pedidos (fotos e artes) na fila rg_jobs do Supabase.
+# Este robô fica de plantão ~50 min por execução, olhando a fila a cada 30 s:
+# baixa as fotos, monta as artes com o kit e envia ao painel.
+# Ao terminar, cada plantão chama o próximo; o agendamento abaixo é a reserva (só um por vez).
+# Autenticação por token OIDC do GitHub: nenhum segredo guardado.
+
 on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
   push:
     branches: [main]
     paths: ['.github/workflows/processar-pedidos.yml']
-  workflow_dispatch:
+
 permissions:
-  contents: read
+  contents: write
+  id-token: write
+  actions: write
+
 concurrency:
   group: processar-pedidos
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
 jobs:
-  pausa:
+  plantao:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 58
     steps:
-      - run: echo "Pausa de transicao para o fluxo Claude original; nenhuma chamada de IA ou escrita no banco."
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # o runner já tem o Google Chrome; o kit e o robô usam ele (sem baixar outro navegador)
+      - run: pip install pillow==11.1.0 numpy==2.2.3 playwright==1.49.1 "opencv-python-headless==4.10.0.84"
+      - name: Verificar worker sem IA e acesso a fila
+        run: |
+          python -m py_compile tools/processar.py tools/baixar.py kit/render.py
+          python - <<'PY'
+          from tools.processar import chamar
+          r = chamar("POST", [])
+          assert r.get("ok") is True, "Backend original nao confirmado"
+          print("Backend original autenticado; nenhum pedido alterado.")
+          PY
+      - name: Plantão
+        run: |
+          git config user.name "reparticao-goat-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python tools/processar.py 50
+      # emenda o próximo plantão (o agendamento do GitHub às vezes atrasa ou não dispara)
+      - name: Próximo plantão
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run processar-pedidos.yml --ref main -R "$GITHUB_REPOSITORY"

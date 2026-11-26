@@ -13,7 +13,7 @@ Para cada pedido em jobs/<id>.json que ainda não tem fotos/<id>/meta.json:
 - Registra em fotos/<id>/meta.json a origem, o tamanho em pixels e qualquer erro.
 O designer confere cada foto (marca d'água, resolução) antes de usar.
 """
-import io, json, re, sys, time, urllib.error, urllib.parse, urllib.request
+import io, json, re, sys, time, urllib.parse, urllib.request
 from pathlib import Path
 
 from PIL import Image
@@ -23,16 +23,6 @@ JOBS, FOTOS = ROOT / "jobs", ROOT / "fotos"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 MAX = 25 * 1024 * 1024
 SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
-RESTRICTED_HTTP = frozenset({401, 402, 403, 407, 429, 451})
-
-
-class AcessoRestrito(ValueError):
-    """A fonte negou ou limitou o acesso; não tentar outro cliente para contorná-la."""
-
-
-def conferir_acesso(status):
-    if status in RESTRICTED_HTTP:
-        raise AcessoRestrito(f"Fonte respondeu HTTP {status}; usar outra fonte oficial autorizada")
 
 
 def get(url, tentativas=3):
@@ -52,11 +42,6 @@ def get(url, tentativas=3):
                 if len(data) > MAX:
                     raise ValueError("arquivo maior que 25 MB")
                 return ctype, data, r.geturl()
-        except urllib.error.HTTPError as e:
-            conferir_acesso(e.code)
-            ultimo = e
-            if i + 1 < tentativas:
-                time.sleep(3 * (i + 1))
         except ValueError:
             raise
         except Exception as e:  # tempo esgotado, conexão recusada etc.
@@ -79,7 +64,7 @@ _browser = None
 
 
 def via_navegador(url):
-    """Lê conteúdo público dependente de JavaScript; nunca supera negativa de acesso."""
+    """Segunda tentativa: abre a página num Chrome de verdade (sites que barram robôs simples)."""
     global _browser
     from playwright.sync_api import sync_playwright
     if _browser is None:
@@ -90,16 +75,9 @@ def via_navegador(url):
     try:
         page = ctx.new_page()
         resp = page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        if resp:
-            conferir_acesso(resp.status)
-            if resp.status >= 400:
-                raise ValueError(f"página respondeu HTTP {resp.status}")
         ctype = (resp.headers.get("content-type", "") if resp else "").split(";")[0].lower()
         if ctype.startswith("image/"):
-            body = resp.body()
-            if len(body) > MAX:
-                raise ValueError("arquivo maior que 25 MB")
-            return ctype, body, page.url
+            return ctype, resp.body(), url
         try:
             page.wait_for_load_state("networkidle", timeout=20000)
         except Exception:
@@ -117,7 +95,6 @@ def via_navegador(url):
         if not img:
             raise ValueError(f"página sem imagem principal (título: {page.title()[:80]})")
         r = ctx.request.get(img, headers={"Referer": page.url}, timeout=60000)
-        conferir_acesso(r.status)
         if not r.ok:
             raise ValueError(f"imagem respondeu HTTP {r.status}")
         body = r.body()
@@ -165,8 +142,6 @@ def baixar(item, dest, n):
             if not img:
                 raise ValueError("página sem imagem principal (og:image)")
             ctype, data, origem = get(img)
-    except AcessoRestrito:
-        raise
     except Exception as e1:
         try:
             ctype, data, origem = via_navegador(url)
