@@ -1,0 +1,40 @@
+name: GOAT Cloudflare ponta a ponta
+on:
+  push:
+    branches: [cloudflare-editorial-verification-20261126]
+    paths: ['.github/workflows/goat-cloudflare-e2e.yml','tools/verify_cloudflare_e2e.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preview:
+    if: github.ref == 'refs/heads/cloudflare-editorial-verification-20261126'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pillow==11.1.0 numpy==2.2.3 playwright==1.49.1 "opencv-python-headless==4.10.0.84"
+      - name: Browser
+        run: |
+          if [ ! -x /usr/bin/google-chrome ]; then
+            python -m playwright install --with-deps chromium
+          fi
+      - name: Pauta oficial, Cloudflare, render GOAT e revisao
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          MAGNIFIC_API_KEY: ${{ secrets.MAGNIFIC_API_KEY }}
+          GOAT_MAX_VISUAL_PER_RUN: '0'
+        run: python -m tools.verify_cloudflare_e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: goat-cloudflare-e2e
+          path: /tmp/goat-cloudflare-e2e/
+          retention-days: 3
+          if-no-files-found: warn
